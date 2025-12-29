@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ofspectrum"
+version = "1.1.0"
+description = "OfSpectrum Audio Watermarking SDK"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "OfSpectrum", email = "dev@ofspectrum.com"}
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Typing :: Typed",
+]
+keywords = ["audio", "watermark", "api", "sdk", "ofspectrum"]
+dependencies = [
+    "httpx>=0.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://ofspectrum.com"
+Documentation = "https://api.ofspectrum.com/docs"
+Repository = "https://github.com/ofspectrum/python-sdk"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ofspectrum*"]
+
+[tool.setuptools.package-data]
+ofspectrum = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
