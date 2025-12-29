@@ -29,7 +29,7 @@ Example:
     print(f"Remaining: {quota.remaining}/{quota.quota_limit}")
 """
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 __author__ = "OfSpectrum"
 
 from .client import OfSpectrum, AsyncOfSpectrum

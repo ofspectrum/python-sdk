@@ -35,13 +35,23 @@ class Quota:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Quota":
-        """Create Quota from API response dict"""
+        """Create Quota from API response dict.
+
+        Handles both snake_case (from /quotas/all) and camelCase (from /quota) formats.
+        """
+        # Handle both snake_case and camelCase field names
+        service_name = data.get("service_name") or data.get("serviceName", "")
+        quota_type = data.get("quota_type") or data.get("quotaType", "request_limit")
+        quota_limit = data.get("quota_limit") or data.get("quotaLimit", 0)
+        current_usage = data.get("current_usage") or data.get("currentUsage", 0)
+        reset_at = data.get("reset_at") or data.get("resetDate") or data.get("reset_date")
+
         return cls(
-            service_name=data.get("service_name", ""),
-            quota_type=data.get("quota_type", "request_limit"),
-            quota_limit=data.get("quota_limit", 0),
-            current_usage=data.get("current_usage", 0),
-            reset_at=data.get("reset_at"),
+            service_name=service_name,
+            quota_type=quota_type,
+            quota_limit=int(quota_limit) if quota_limit else 0,
+            current_usage=int(current_usage) if current_usage else 0,
+            reset_at=reset_at,
         )
 
     def __str__(self) -> str:
