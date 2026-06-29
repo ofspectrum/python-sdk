@@ -65,35 +65,27 @@ class TokensResource(BaseResource):
 
         Args:
             name: Token name (for identification)
-            token_type: "standard" (default), "creator", or "enterprise"
-            public_key: Public key for watermark verification.
-                        Defaults to 258 for creator/enterprise types.
-                        Auto-generated for standard type if not provided.
-            enterprise_verification: Whether to enable enterprise verification
+            token_type: "standard" (default), "pro", or "enterprise"
+            public_key: Verification key when your token workflow requires one.
+            enterprise_verification: Enterprise-only verification setting for eligible accounts.
 
         Returns:
             Newly created Token object
 
         Example:
+            import os
+
             # Simple creation (recommended)
             token = client.tokens.create(name="My Token")
 
-            # Creator type (uses default public_key=258)
+            # Pro token with a workflow-specific verification key
+            verification_key = int(os.environ["OFSPECTRUM_PUBLIC_KEY"])
             token = client.tokens.create(
-                name="Creator Token",
-                token_type="creator"
-            )
-
-            # Custom public_key
-            token = client.tokens.create(
-                name="Enterprise Token",
-                token_type="enterprise",
-                public_key=12345
+                name="Pro Token",
+                token_type="pro",
+                public_key=verification_key,
             )
         """
-        # Set default public_key for creator/enterprise types
-        if token_type in ("creator", "enterprise") and public_key is None:
-            public_key = 258  # Default public key, matches web interface
         params = TokenCreateParams(
             name=name,
             token_type=token_type,
@@ -123,8 +115,8 @@ class TokensResource(BaseResource):
         Args:
             token_id: The token UUID
             name: New name (optional)
-            public_key: New public key (optional)
-            enterprise_verification: New enterprise verification setting (optional)
+            public_key: New verification key when your token workflow supports it (optional)
+            enterprise_verification: Enterprise-only verification setting for eligible accounts (optional)
 
         Returns:
             Updated Token object

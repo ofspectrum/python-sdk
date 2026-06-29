@@ -3,7 +3,7 @@ Audio processing result models
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -100,3 +100,20 @@ class DecodeResult:
     def is_watermarked(self) -> bool:
         """Alias for watermarked property"""
         return self.watermarked
+
+
+@dataclass
+class StreamingEncodeResult:
+    """Result of a streaming PCM watermark encode operation."""
+
+    encoded_pcm: bytes
+    token_id: str
+    sample_rate: int = 48000
+    channels: int = 1
+    events: Optional[List[Dict[str, Any]]] = None
+
+    @property
+    def audio_duration(self) -> float:
+        if self.sample_rate <= 0 or self.channels <= 0:
+            return 0.0
+        return len(self.encoded_pcm) / float(4 * self.sample_rate * self.channels)

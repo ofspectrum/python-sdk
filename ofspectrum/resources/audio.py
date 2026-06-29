@@ -2,16 +2,25 @@
 Audio resource for watermark encoding and decoding
 """
 
-from typing import Union, Optional, BinaryIO
+from typing import Any, Iterable, Union, Optional, BinaryIO
 from pathlib import Path
+import json
+from urllib.parse import urlsplit, urlunsplit
 import httpx
 from .base import BaseResource
-from ..models.audio import EncodeResult, DecodeResult
+from ..models.audio import DecodeResult, EncodeResult, StreamingEncodeResult
 from ..exceptions import raise_for_error, OfSpectrumError
 
 
 class AudioResource(BaseResource):
     """Resource for audio watermark operations"""
+
+    def _websocket_url(self, path: str) -> str:
+        base = self._client._base_url.rstrip("/")
+        split = urlsplit(base)
+        scheme = "wss" if split.scheme == "https" else "ws"
+        ws_path = f"{split.path.rstrip('/')}/{path.lstrip('/')}"
+        return urlunsplit((scheme, split.netloc, ws_path, "", ""))
 
     def encode(
         self,
@@ -43,14 +52,13 @@ class AudioResource(BaseResource):
             )
             print(f"Encoded {result.audio_duration}s of audio")
         """
-        # Prepare form data (internal parameters are fixed, not user-configurable)
+        # Prepare form data for the product API.
         form_data = {
             "token_id": token_id,
             "strength": str(strength),
             "smooth": str(smooth).lower(),
-            "interval": "0.0",           # Fixed: no interval
-            "save_file": "true",          # Fixed: always save to server
-            "check_watermark": "true",    # Fixed: always check for existing watermark
+            "save_file": "true",
+            "check_watermark": "true",
             "response_format": "json" if output_path else "stream",
         }
 
@@ -141,14 +149,14 @@ class AudioResource(BaseResource):
         self,
         audio: Union[str, Path, BinaryIO],
         *,
-        public_key: int = 258,
+        public_key: Optional[int] = None,
     ) -> DecodeResult:
         """
         Decode (detect) a watermark from an audio file.
 
         Args:
             audio: Audio file path or file-like object
-            public_key: Public key for verification (default 258)
+            public_key: Optional verification key when your workflow requires one
 
         Returns:
             DecodeResult with watermark information
@@ -162,9 +170,10 @@ class AudioResource(BaseResource):
         """
         # Internal parameters are fixed, not user-configurable
         form_data = {
-            "public_key": str(public_key),
             "save_file": "true",  # Fixed: always save usage
         }
+        if public_key is not None:
+            form_data["public_key"] = str(public_key)
 
         if isinstance(audio, (str, Path)):
             path = Path(audio)
@@ -192,5 +201,111 @@ class AudioResource(BaseResource):
         raise_for_error(data, response.status_code)
 
         return DecodeResult.from_dict(data.get("data", {}))
+
+    def stream_encode_pcm(
+        self,
+        pcm_chunks: Iterable[bytes],
+        token_id: str,
+        *,
+        sample_rate: int = 48000,
+        channels: int = 1,
+        strength: float = 1.0,
+        smooth: bool = True,
+    ) -> StreamingEncodeResult:
+        """
+        Stream raw PCM float32 little-endian audio to Neo for watermark encoding.
+
+        The SDK sends token_id and product-level encoding settings to Neo.
+        Returned bytes are encoded raw PCM float32 little-endian, not WAV.
+        """
+        if not token_id:
+            raise ValueError("token_id is required")
+        if sample_rate <= 0:
+            raise ValueError("sample_rate must be positive")
+        if channels <= 0:
+            raise ValueError("channels must be positive")
+
+        try:
+            from websockets.sync.client import connect
+        except Exception as exc:
+            raise OfSpectrumError(
+                message="Streaming encode requires the 'websockets' package",
+                code="MissingDependency",
+            ) from exc
+
+        url = self._websocket_url("/audio/watermark/ws/encode")
+        headers = {"Authorization": f"Bearer {self._client._api_key}"}
+        config = {
+            "type": "config",
+            "config": {
+                "token_id": token_id,
+                "sample_rate": sample_rate,
+                "channels": channels,
+                "strength": strength,
+                "smooth": smooth,
+            },
+        }
+        encoded_chunks = []
+        events = []
+
+        try:
+            ws_context = connect(url, additional_headers=headers, open_timeout=self._client._timeout)
+        except TypeError:
+            ws_context = connect(url, extra_headers=headers, open_timeout=self._client._timeout)
+
+        with ws_context as ws:
+            ws.send(json.dumps(config))
+            for chunk in pcm_chunks:
+                if not isinstance(chunk, (bytes, bytearray, memoryview)):
+                    raise TypeError("pcm_chunks must yield bytes-like objects")
+                if len(chunk) == 0:
+                    continue
+                ws.send(bytes(chunk))
+                while True:
+                    try:
+                        message = ws.recv(timeout=0.01)
+                    except TimeoutError:
+                        break
+                    self._collect_stream_encode_message(message, encoded_chunks, events)
+            ws.send(json.dumps({"type": "end"}))
+            while True:
+                try:
+                    message = ws.recv()
+                except Exception:
+                    break
+                if self._collect_stream_encode_message(message, encoded_chunks, events):
+                    break
+
+        return StreamingEncodeResult(
+            encoded_pcm=b"".join(encoded_chunks),
+            token_id=token_id,
+            sample_rate=sample_rate,
+            channels=channels,
+            events=events,
+        )
+
+    @staticmethod
+    def _collect_stream_encode_message(
+        message: Any,
+        encoded_chunks: list,
+        events: list,
+    ) -> bool:
+        if isinstance(message, bytes):
+            encoded_chunks.append(message)
+            return False
+        if isinstance(message, str):
+            try:
+                event = json.loads(message)
+            except Exception:
+                event = {"type": "message", "message": message}
+            if isinstance(event, dict):
+                events.append(event)
+                if event.get("type") in {"error", "quota_exceeded"}:
+                    raise OfSpectrumError(
+                        message=str(event.get("message") or "Streaming encode failed"),
+                        code=str(event.get("type") or "StreamingEncodeError"),
+                    )
+                return event.get("type") == "done"
+        return False
 
     # Note: decode_from_url is not yet available

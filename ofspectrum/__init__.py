@@ -1,7 +1,7 @@
 """
 OfSpectrum Python SDK
 
-Audio watermarking and AI detection API client.
+Audio watermarking API client.
 
 Example:
     from ofspectrum import OfSpectrum
@@ -9,7 +9,7 @@ Example:
     client = OfSpectrum(api_key="your_api_key")
 
     # Create a token
-    token = client.tokens.create(name="My Token", token_type="creator")
+    token = client.tokens.create(name="My Token", token_type="pro")
 
     # Encode watermark
     result = client.audio.encode(
@@ -29,7 +29,7 @@ Example:
     print(f"Remaining: {quota.remaining}/{quota.quota_limit}")
 """
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 __author__ = "OfSpectrum"
 
 from .client import OfSpectrum, AsyncOfSpectrum
@@ -54,6 +54,7 @@ from .models import (
     NotebookCreateParams,
     EncodeResult,
     DecodeResult,
+    StreamingEncodeResult,
     Quota,
     QuotaList,
 )
@@ -83,6 +84,7 @@ __all__ = [
     "NotebookCreateParams",
     "EncodeResult",
     "DecodeResult",
+    "StreamingEncodeResult",
     "Quota",
     "QuotaList",
     # Utils
