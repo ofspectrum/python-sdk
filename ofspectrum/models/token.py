@@ -9,12 +9,12 @@ from datetime import datetime
 
 @dataclass
 class Token:
-    """Represents a watermark token"""
+    """Represents a watermark token."""
 
     id: str
     name: str
-    token_type: Literal["standard", "creator", "enterprise"]
-    public_key: int
+    token_type: Literal["standard", "pro", "enterprise"]
+    public_key: Optional[int] = None
     enterprise_verification: bool = False
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -26,7 +26,7 @@ class Token:
             id=data["id"],
             name=data.get("name", ""),
             token_type=data.get("token_type", "standard"),
-            public_key=data.get("public_key", 258),
+            public_key=data.get("public_key"),
             enterprise_verification=data.get("enterprise_verification", False),
             created_at=data.get("created_at"),
             updated_at=data.get("updated_at"),
@@ -38,7 +38,7 @@ class TokenCreateParams:
     """Parameters for creating a new token"""
 
     name: str
-    token_type: Literal["standard", "creator", "enterprise"] = "standard"
+    token_type: Literal["standard", "pro", "enterprise"] = "standard"
     public_key: Optional[int] = None
     enterprise_verification: bool = False
 
