@@ -202,11 +202,12 @@ def test_url_encode(api_key, token_id, audio_path, output_path):
                 print(f"    X-Audio-Duration: {duration}")
                 print(f"    X-Token-Id: {result_token}")
 
-                # Verify no encoding_info in headers
-                if 'X-Encoding-Info' in response.headers:
-                    log_warn("[URL] encode headers", "X-Encoding-Info exposed")
+                # Verify no internal processing metadata in public headers
+                internal_headers = [name for name in response.headers if name.lower().startswith("x-internal-")]
+                if internal_headers:
+                    log_warn("[URL] encode headers", f"Internal metadata exposed: {internal_headers}")
                 else:
-                    log_pass("[URL] encode security", "No encoding_info in headers")
+                    log_pass("[URL] encode security", "No internal metadata in headers")
 
                 return output_path
             else:
@@ -249,11 +250,12 @@ def test_url_decode(api_key, audio_path):
             print(f"    watermarked: {watermarked}")
             print(f"    token_id: {token_id}")
 
-            # Verify simplified response (no encoding_info)
-            if 'encoding_info' in result:
-                log_warn("[URL] decode security", "encoding_info exposed")
+            # Verify simplified response
+            internal_fields = [key for key in result if str(key).startswith("internal_")]
+            if internal_fields:
+                log_warn("[URL] decode security", f"Internal metadata exposed: {internal_fields}")
             else:
-                log_pass("[URL] decode security", "No encoding_info in response")
+                log_pass("[URL] decode security", "No internal metadata in response")
 
             return result
         else:
@@ -467,11 +469,11 @@ def test_sdk_encode(client, token_id, audio_path, output_path):
         if result.audio_duration > 0:
             log_pass("[SDK] audio.encode()", f"Duration: {result.audio_duration}s")
 
-            # Verify no encoding_info
-            if hasattr(result, 'encoding_info') and result.encoding_info:
-                log_warn("[SDK] encode security", "encoding_info exists")
+            # Verify no internal metadata
+            if any(name.startswith("internal_") for name in vars(result)):
+                log_warn("[SDK] encode security", "Internal metadata exists")
             else:
-                log_pass("[SDK] encode security", "No encoding_info")
+                log_pass("[SDK] encode security", "No internal metadata")
 
             return output_path
         else:
@@ -489,11 +491,11 @@ def test_sdk_decode(client, audio_path):
         result = client.audio.decode(audio=audio_path)
         log_pass("[SDK] audio.decode()", f"watermarked={result.watermarked}, token_id={result.token_id}")
 
-        # Verify no encoding_info
-        if hasattr(result, 'encoding_info') and result.encoding_info:
-            log_warn("[SDK] decode security", "encoding_info exists")
+        # Verify no internal metadata
+        if any(name.startswith("internal_") for name in vars(result)):
+            log_warn("[SDK] decode security", "Internal metadata exists")
         else:
-            log_pass("[SDK] decode security", "No encoding_info")
+            log_pass("[SDK] decode security", "No internal metadata")
 
         return result
     except Exception as e:
