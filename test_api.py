@@ -439,22 +439,16 @@ def test_sdk_quotas(client):
     try:
         # Get encode quota
         quota = client.quotas.get_encode_quota()
-        log_pass("[SDK] quotas.get_encode_quota()", f"Remaining: {quota.remaining}/{quota.quota_limit}")
+        log_pass("[SDK] quotas.get_encode_quota()", f"Remaining: {quota.remaining}/{quota.limit}")
     except Exception as e:
         log_fail("[SDK] quotas.get_encode_quota()", str(e))
 
     try:
-        # Get all quotas
-        all_quotas = client.quotas.get_all()
-        log_pass("[SDK] quotas.get_all()", f"Count: {len(all_quotas)}")
-
-        # Verify 5 quotas
-        if len(all_quotas) == 5:
-            log_pass("[SDK] Quotas filter", "Exactly 5 quotas returned")
-        else:
-            log_warn("[SDK] Quotas filter", f"Expected 5, got {len(all_quotas)}")
+        # Get decode quota
+        quota = client.quotas.get_decode_quota()
+        log_pass("[SDK] quotas.get_decode_quota()", f"Remaining: {quota.remaining}/{quota.limit}")
     except Exception as e:
-        log_fail("[SDK] quotas.get_all()", str(e))
+        log_fail("[SDK] quotas.get_decode_quota()", str(e))
 
 def test_sdk_encode(client, token_id, audio_path, output_path):
     """Test encode via SDK"""

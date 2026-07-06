@@ -2,7 +2,7 @@
 Tokens resource for managing watermark tokens
 """
 
-from typing import List, Optional
+from typing import List, Optional, Literal
 from .base import BaseResource
 from ..models.token import Token, TokenCreateParams, TokenUpdateParams
 from ..exceptions import raise_for_error
@@ -27,7 +27,7 @@ class TokensResource(BaseResource):
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns a direct list
+        # API returns a direct list
         tokens_data = data if isinstance(data, list) else data.get("data", {}).get("tokens", [])
         return [Token.from_dict(t) for t in tokens_data]
 
@@ -48,7 +48,7 @@ class TokensResource(BaseResource):
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns a list with single token
+        # API returns a list with a single token
         if isinstance(data, list) and len(data) > 0:
             return Token.from_dict(data[0])
         return Token.from_dict(data.get("data", {}) if isinstance(data, dict) else {})
@@ -56,18 +56,17 @@ class TokensResource(BaseResource):
     def create(
         self,
         name: str,
-        token_type: str = "standard",
+        token_type: Literal["standard", "pro"] = "standard",
         public_key: Optional[int] = None,
-        enterprise_verification: bool = False,
     ) -> Token:
         """
         Create a new watermark token.
 
         Args:
             name: Token name (for identification)
-            token_type: "standard" (default), "pro", or "enterprise"
+            token_type: "standard" (default) or "pro"
             public_key: Verification key when your token workflow requires one.
-            enterprise_verification: Enterprise-only verification setting for eligible accounts.
+                        Defaults to 258 for pro tokens if not provided.
 
         Returns:
             Newly created Token object
@@ -86,18 +85,23 @@ class TokensResource(BaseResource):
                 public_key=verification_key,
             )
         """
+        if token_type not in ("standard", "pro"):
+            raise ValueError("token_type must be 'standard' or 'pro'")
+
+        # Set default public_key for pro type
+        if token_type == "pro" and public_key is None:
+            public_key = 258  # Default public key, matches web interface
         params = TokenCreateParams(
             name=name,
             token_type=token_type,
             public_key=public_key,
-            enterprise_verification=enterprise_verification,
         )
 
         response = self._post("/tokens/", json=params.to_dict())
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns the token directly
+        # API returns the token directly
         if isinstance(data, dict) and "id" in data:
             return Token.from_dict(data)
         return Token.from_dict(data.get("data", {}))
@@ -136,7 +140,7 @@ class TokensResource(BaseResource):
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns the token directly
+        # API returns the token directly
         if isinstance(data, dict) and "id" in data:
             return Token.from_dict(data)
         return Token.from_dict(data.get("data", {}))

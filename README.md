@@ -42,12 +42,20 @@ else:
 
 # Check your quota.
 quota = client.quotas.get_encode_quota()
-print(f"Remaining encode quota: {quota.remaining}/{quota.quota_limit} seconds")
+print(f"Remaining encode quota: {quota.remaining}/{quota.limit} seconds")
 ```
+
+## Building With AI Coding Agents
+
+If you are building an app or internal tool with this SDK, see [AGENT_GUIDE.md](./AGENT_GUIDE.md). It explains token modeling patterns, notebook/provenance guidance, security notes, test flows, and includes a copyable prompt for AI coding agents such as Codex.
+
+## Test Audio
+
+Synthetic WAV files for encode/decode smoke tests are available in [`examples/audio`](./examples/audio). They contain no third-party audio and are intended for local SDK verification.
 
 ## Token Management
 
-Standard tokens are the simplest option. Pro tokens support workflow-specific verification-key configuration. Enterprise token configuration is available for eligible enterprise accounts or existing enterprise tokens.
+Standard tokens are the simplest option. Pro tokens support workflow-specific verification-key configuration.
 
 ```python
 import os
@@ -72,7 +80,7 @@ token = client.tokens.update(
     name="New Name",
 )
 
-# Update a Pro or eligible Enterprise token verification key.
+# Update a Pro token verification key.
 token = client.tokens.update(
     token_id="token-uuid",
     public_key=verification_key,
@@ -132,6 +140,15 @@ print(f"Encoded {result.audio_duration:.2f}s of PCM")
 
 Attach notes and media files to tokens. Private notebooks require a credential, and limits depend on your account and token configuration.
 
+Notebook limits:
+
+| Token Type | Public Notebooks | Private Notebooks |
+|------------|------------------|-------------------|
+| `standard` | 1 | 0 |
+| `pro` | 1 | 1 |
+
+If the limit is reached, the SDK raises a `ValidationError` with a customer-facing message.
+
 ```python
 notebook = client.notebooks.create(
     token_id=token.id,
@@ -160,10 +177,10 @@ notebooks = client.notebooks.list(token_id=token.id)
 
 ```python
 quota = client.quotas.get_encode_quota()
-print(f"Remaining encode quota: {quota.remaining}")
+print(f"Remaining encode quota: {quota.remaining}/{quota.limit}")
 
 decode_quota = client.quotas.get_decode_quota()
-print(f"Remaining decode quota: {decode_quota.remaining}")
+print(f"Remaining decode quota: {decode_quota.remaining}/{decode_quota.limit}")
 
 if client.quotas.check_encode_available(duration_seconds=300):
     result = client.audio.encode(audio="input.mp3", token_id=token.id)
@@ -186,7 +203,7 @@ try:
 except RateLimitError as e:
     print(f"Rate limited. Retry after {e.retry_after} seconds")
 except QuotaExceededError as e:
-    print(f"Quota exceeded for {e.service}")
+    print(e.message)
 except WatermarkExistsError:
     print("Audio already has a watermark")
 except AuthenticationError:

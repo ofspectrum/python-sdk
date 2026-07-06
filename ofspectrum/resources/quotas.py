@@ -2,7 +2,6 @@
 Quotas resource for checking service usage
 """
 
-from typing import Optional
 from .base import BaseResource
 from ..models.quota import Quota, QuotaList
 from ..exceptions import raise_for_error
@@ -11,45 +10,23 @@ from ..exceptions import raise_for_error
 class QuotasResource(BaseResource):
     """Resource for checking service quotas"""
 
-    def get(self, service_name: str) -> Quota:
-        """
-        Get quota for a specific service.
-
-        Args:
-            service_name: Service name (e.g., "AudioWatermarkEncode")
-
-        Returns:
-            Quota object
-
-        Example:
-            quota = client.quotas.get("AudioWatermarkEncode")
-            print(f"Remaining: {quota.remaining}/{quota.quota_limit}")
-        """
-        response = self._get(f"/usage/quota?serviceName={service_name}")
+    def _get_quota(self, service: str) -> Quota:
+        """Get quota for an OfSpectrum service."""
+        response = self._get(f"/usage/quota?serviceName={service}")
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns quota data directly
+        # API returns quota data directly
         quota_data = data if isinstance(data, dict) and "quotaLimit" in data else data.get("data", {})
         return Quota.from_dict(quota_data)
 
-    def get_all(self) -> QuotaList:
-        """
-        Get all quotas for the current user.
-
-        Returns:
-            QuotaList with all service quotas
-
-        Example:
-            quotas = client.quotas.get_all()
-            for quota in quotas:
-                print(f"{quota.service_name}: {quota.remaining} remaining")
-        """
+    def _get_all_quotas(self) -> QuotaList:
+        """Get all quotas for the current user."""
         response = self._get("/usage/quotas/all")
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns a list of quotas directly
+        # API returns a list of quotas directly
         quotas_data = data if isinstance(data, list) else data.get("data", {}).get("quotas", [])
         return QuotaList.from_list(quotas_data)
 
@@ -60,7 +37,7 @@ class QuotasResource(BaseResource):
         Returns:
             Quota for encoding service
         """
-        return self.get("AudioWatermarkEncode")
+        return self._get_quota("AudioWatermarkEncode")
 
     def get_decode_quota(self) -> Quota:
         """
@@ -69,7 +46,7 @@ class QuotasResource(BaseResource):
         Returns:
             Quota for decoding service
         """
-        return self.get("AudioWatermarkDecode")
+        return self._get_quota("AudioWatermarkDecode")
 
     def check_encode_available(self, duration_seconds: int) -> bool:
         """

@@ -26,7 +26,7 @@ Example:
 
     # Check quota
     quota = client.quotas.get_encode_quota()
-    print(f"Remaining: {quota.remaining}/{quota.quota_limit}")
+    print(f"Remaining: {quota.remaining}/{quota.limit}")
 """
 
 __version__ = "1.1.4"
