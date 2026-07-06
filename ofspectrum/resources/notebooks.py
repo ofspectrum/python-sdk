@@ -32,7 +32,7 @@ class NotebooksResource(BaseResource):
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns a direct list
+        # API returns a direct list
         notes_data = data if isinstance(data, list) else data.get("data", {}).get("notes", [])
         return [Notebook.from_dict(n) for n in notes_data]
 
@@ -47,15 +47,14 @@ class NotebooksResource(BaseResource):
             Notebook object
 
         Note:
-            The backend doesn't have a single-note GET endpoint.
-            This uses PATCH with empty body to get the note (returns current state).
+            This returns the current notebook state when available.
         """
-        # Use PATCH with empty body - backend returns the updated note
+        # Use an empty update request to return the current note state.
         response = self._patch(f"/watermark-notes/{note_id}", data={})
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns the note directly or wrapped in data
+        # API returns the note directly or wrapped in data
         note_data = data if isinstance(data, dict) and "id" in data else data.get("data", {})
         return Notebook.from_dict(note_data)
 
@@ -75,7 +74,7 @@ class NotebooksResource(BaseResource):
             note_name: Notebook name/title
             text_content: Notebook content (markdown supported)
             is_public: Whether the notebook is publicly visible (default: True)
-            credential_val: Credential for private notes (default: "123" if not provided)
+            credential_val: Optional credential for private notes
 
         Returns:
             Newly created Notebook object
@@ -100,7 +99,7 @@ class NotebooksResource(BaseResource):
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns the note directly
+        # API returns the note directly
         note_data = data if isinstance(data, dict) and "id" in data else data.get("data", {})
         return Notebook.from_dict(note_data)
 
@@ -141,7 +140,7 @@ class NotebooksResource(BaseResource):
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns the note directly
+        # API returns the note directly
         note_data = data if isinstance(data, dict) and "id" in data else data.get("data", {})
         return Notebook.from_dict(note_data)
 
@@ -230,7 +229,7 @@ class NotebooksResource(BaseResource):
         resp_data = response.json()
         raise_for_error(resp_data, response.status_code)
 
-        # Backend returns the media record directly
+        # API returns the media record directly
         return resp_data if isinstance(resp_data, dict) else resp_data.get("data", {})
 
     def delete_media(self, media_id: str) -> bool:
@@ -270,7 +269,7 @@ class NotebooksResource(BaseResource):
         data = response.json()
         raise_for_error(data, response.status_code)
 
-        # Backend returns {"url": "..."} or {"data": {"url": "..."}}
+        # API returns {"url": "..."} or {"data": {"url": "..."}}
         if isinstance(data, dict):
             return data.get("url", "") or data.get("data", {}).get("url", "")
         return ""

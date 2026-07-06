@@ -26,10 +26,10 @@ Example:
 
     # Check quota
     quota = client.quotas.get_encode_quota()
-    print(f"Remaining: {quota.remaining}/{quota.quota_limit}")
+    print(f"Remaining: {quota.remaining}/{quota.limit}")
 """
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 __author__ = "OfSpectrum"
 
 from .client import OfSpectrum, AsyncOfSpectrum

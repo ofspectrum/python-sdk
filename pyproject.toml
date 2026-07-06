@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ofspectrum"
-version = "1.1.4"
+version = "1.1.5"
 description = "OfSpectrum Audio Watermarking SDK"
 readme = "README.md"
 license = {text = "MIT"}
