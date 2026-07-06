@@ -38,16 +38,14 @@ class TokenCreateParams:
     """Parameters for creating a new token"""
 
     name: str
-    token_type: Literal["standard", "pro", "enterprise"] = "standard"
+    token_type: Literal["standard", "pro"] = "standard"
     public_key: Optional[int] = None
-    enterprise_verification: bool = False
 
     def to_dict(self) -> dict:
         """Convert to API request dict"""
         data = {
             "name": self.name,
             "token_type": self.token_type,
-            "enterprise_verification": self.enterprise_verification,
         }
         if self.public_key is not None:
             data["public_key"] = self.public_key

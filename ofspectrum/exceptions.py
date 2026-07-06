@@ -167,6 +167,71 @@ ERROR_CODE_MAP = {
 }
 
 
+def _raise_direct_error(
+    error_code: str,
+    message: str,
+    status_code: int,
+    details: Optional[Dict[str, Any]] = None,
+):
+    """Raise SDK exceptions for legacy/direct API error payloads."""
+    details = details or {}
+
+    # Map common legacy error codes used by tokens_router and other endpoints.
+    if error_code == "QuotaExceeded":
+        raise QuotaExceededError(
+            message="Token quota exceeded. Please upgrade your plan or contact support.",
+            code=error_code,
+            status_code=status_code or 429,
+            details={},
+        )
+    elif error_code in ("QuotaMissing", "QuotaCheckFailed"):
+        raise QuotaExceededError(
+            message="Token quota is temporarily unavailable. Please try again later or contact support.",
+            code=error_code,
+            status_code=status_code or 500,
+            details={},
+        )
+    elif error_code in ("InsufficientBalance", "insufficient_balance") or status_code == 402:
+        raise QuotaExceededError(
+            message="Insufficient balance. Please add funds or choose a subscription.",
+            code=error_code,
+            status_code=status_code or 402,
+            details={},
+        )
+    elif error_code == "Unauthorized":
+        raise AuthenticationError(message=message, code=error_code, status_code=status_code or 403, details=details)
+    elif error_code in ("DuplicateName", "ValidationError"):
+        raise ValidationError(message=message, code=error_code, status_code=status_code or 400, details=details)
+    elif error_code == "Missing required fields" or error_code == "InvalidField":
+        raise ValidationError(message=message, code=error_code, status_code=status_code or 400, details=details)
+    elif error_code == "UnableToGenerate":
+        raise OfSpectrumError(message=message, code=error_code, status_code=status_code or 500, details=details)
+    else:
+        raise OfSpectrumError(message=message, code=error_code, status_code=status_code or 500, details=details)
+
+
+def _raise_detail_error(message: str, status_code: int):
+    """Raise sanitized SDK exceptions for FastAPI detail strings."""
+    if message == "Only one public notebook allowed per token":
+        raise ValidationError(
+            message="This token already has a public notebook. Each token supports one public notebook.",
+            code="NotebookLimit",
+            status_code=status_code or 400,
+            details={},
+        )
+    if message == "Private notebook limit reached for this token":
+        raise ValidationError(
+            message=(
+                "Private notebook limit reached for this token. Standard tokens do not support "
+                "private notebooks; Pro tokens support one private notebook."
+            ),
+            code="NotebookLimit",
+            status_code=status_code or 400,
+            details={},
+        )
+    raise OfSpectrumError(message=message, status_code=status_code)
+
+
 def raise_for_error(response_data, status_code: int):
     """
     Parse API error response and raise appropriate exception.
@@ -187,29 +252,20 @@ def raise_for_error(response_data, status_code: int):
     if "error" in response_data and isinstance(response_data.get("error"), str):
         error_code = response_data.get("error")
         message = response_data.get("message", error_code)
-
-        # Map common error codes
-        if error_code == "QuotaExceeded":
-            raise QuotaExceededError(message=message, status_code=status_code or 429)
-        elif error_code == "QuotaMissing" or error_code == "QuotaCheckFailed":
-            raise QuotaExceededError(message=message, status_code=status_code or 500)
-        elif error_code == "Unauthorized":
-            raise AuthenticationError(message=message, status_code=status_code or 403)
-        elif error_code == "DuplicateName":
-            raise ValidationError(message=message, status_code=status_code or 400)
-        elif error_code == "Missing required fields" or error_code == "InvalidField":
-            raise ValidationError(message=message, status_code=status_code or 400)
-        elif error_code == "UnableToGenerate":
-            raise OfSpectrumError(message=message, code=error_code, status_code=status_code or 500)
-        else:
-            raise OfSpectrumError(message=message, code=error_code, status_code=status_code or 500)
+        _raise_direct_error(error_code, message, status_code, response_data)
 
     if response_data.get("status") != "error":
         # Also check for FastAPI validation errors (detail field)
         if "detail" in response_data and status_code >= 400:
             detail = response_data.get("detail")
             if isinstance(detail, str):
-                raise OfSpectrumError(message=detail, status_code=status_code)
+                _raise_detail_error(detail, status_code)
+            elif isinstance(detail, dict):
+                error_code = detail.get("error") or detail.get("code")
+                message = detail.get("message") or detail.get("detail") or error_code or "API request failed"
+                if isinstance(error_code, str):
+                    _raise_direct_error(error_code, message, status_code, detail)
+                raise OfSpectrumError(message=str(message), status_code=status_code, details=detail)
             elif isinstance(detail, list):
                 # FastAPI validation error format
                 messages = [f"{d.get('loc', ['?'])[-1]}: {d.get('msg', '?')}" for d in detail]
