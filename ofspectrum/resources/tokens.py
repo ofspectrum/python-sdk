@@ -2,14 +2,36 @@
 Tokens resource for managing watermark tokens
 """
 
-from typing import List, Optional, Literal
+from typing import Any, List, Literal, Optional
 from .base import BaseResource
-from ..models.token import Token, TokenCreateParams, TokenUpdateParams
+from ..models.token import AiAuthTag, UNSET, Token, TokenCreateParams, TokenUpdateParams
 from ..exceptions import raise_for_error
 
 
 class TokensResource(BaseResource):
     """Resource for managing watermark tokens"""
+
+    def list_ai_auth_tags(self) -> List[AiAuthTag]:
+        """List reusable AI authorization tags for the current account."""
+        response = self._get("/tokens/ai-auth-tags")
+        data = response.json()
+        raise_for_error(data, response.status_code)
+
+        tags_data = data if isinstance(data, list) else data.get("data", {}).get("tags", [])
+        return [AiAuthTag.from_dict(tag) for tag in tags_data]
+
+    def create_ai_auth_tag(self, tag: str) -> AiAuthTag:
+        """Create or retrieve a reusable AI authorization tag."""
+        normalized_tag = tag.strip()
+        if not normalized_tag:
+            raise ValueError("tag must not be empty")
+
+        response = self._post("/tokens/ai-auth-tags", json={"tag": normalized_tag})
+        data = response.json()
+        raise_for_error(data, response.status_code)
+
+        tag_data = data if isinstance(data, dict) and "id" in data else data.get("data", {})
+        return AiAuthTag.from_dict(tag_data)
 
     def list(self) -> List[Token]:
         """
@@ -58,6 +80,11 @@ class TokensResource(BaseResource):
         name: str,
         token_type: Literal["standard", "pro"] = "standard",
         public_key: Optional[int] = None,
+        ai_auth_enabled: bool = False,
+        ai_auth_access_type: Optional[Literal["direct_use", "premium_track"]] = None,
+        ai_auth_price: Optional[float] = None,
+        ai_auth_other_instructions: Optional[str] = None,
+        ai_auth_tags: Optional[List[str]] = None,
     ) -> Token:
         """
         Create a new watermark token.
@@ -67,6 +94,11 @@ class TokensResource(BaseResource):
             token_type: "standard" (default) or "pro"
             public_key: Verification key when your token workflow requires one.
                         Defaults to 258 for pro tokens if not provided.
+            ai_auth_enabled: Whether AI authorization is enabled
+            ai_auth_access_type: "direct_use" or "premium_track" (optional)
+            ai_auth_price: AI authorization price; must be at least 1 when set
+            ai_auth_other_instructions: Additional AI authorization instructions
+            ai_auth_tags: Searchable AI authorization tags
 
         Returns:
             Newly created Token object
@@ -95,6 +127,11 @@ class TokensResource(BaseResource):
             name=name,
             token_type=token_type,
             public_key=public_key,
+            ai_auth_enabled=ai_auth_enabled,
+            ai_auth_access_type=ai_auth_access_type,
+            ai_auth_price=ai_auth_price,
+            ai_auth_other_instructions=ai_auth_other_instructions,
+            ai_auth_tags=ai_auth_tags,
         )
 
         response = self._post("/tokens/", json=params.to_dict())
@@ -111,7 +148,13 @@ class TokensResource(BaseResource):
         token_id: str,
         name: Optional[str] = None,
         public_key: Optional[int] = None,
+        token_type: Optional[Literal["standard", "pro", "enterprise"]] = None,
         enterprise_verification: Optional[bool] = None,
+        ai_auth_enabled: Optional[bool] = None,
+        ai_auth_access_type: Optional[Literal["direct_use", "premium_track"]] = None,
+        ai_auth_price: Any = UNSET,
+        ai_auth_other_instructions: Optional[str] = None,
+        ai_auth_tags: Optional[List[str]] = None,
     ) -> Token:
         """
         Update an existing token.
@@ -120,7 +163,13 @@ class TokensResource(BaseResource):
             token_id: The token UUID
             name: New name (optional)
             public_key: New verification key when your token workflow supports it (optional)
+            token_type: New token type. The API permits upgrades but rejects downgrades.
             enterprise_verification: Enterprise-only verification setting for eligible accounts (optional)
+            ai_auth_enabled: Whether AI authorization is enabled
+            ai_auth_access_type: "direct_use" or "premium_track" (optional)
+            ai_auth_price: AI authorization price, or None to clear it
+            ai_auth_other_instructions: Additional AI authorization instructions
+            ai_auth_tags: Replacement list of AI authorization tags
 
         Returns:
             Updated Token object
@@ -128,7 +177,13 @@ class TokensResource(BaseResource):
         params = TokenUpdateParams(
             name=name,
             public_key=public_key,
+            token_type=token_type,
             enterprise_verification=enterprise_verification,
+            ai_auth_enabled=ai_auth_enabled,
+            ai_auth_access_type=ai_auth_access_type,
+            ai_auth_price=ai_auth_price,
+            ai_auth_other_instructions=ai_auth_other_instructions,
+            ai_auth_tags=ai_auth_tags,
         )
 
         update_data = params.to_dict()

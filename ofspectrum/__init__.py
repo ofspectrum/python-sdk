@@ -29,7 +29,7 @@ Example:
     print(f"Remaining: {quota.remaining}/{quota.limit}")
 """
 
-__version__ = "1.1.5"
+__version__ = "1.1.6"
 __author__ = "OfSpectrum"
 
 from .client import OfSpectrum, AsyncOfSpectrum
@@ -47,6 +47,7 @@ from .exceptions import (
 )
 from .models import (
     Token,
+    AiAuthTag,
     TokenCreateParams,
     TokenUpdateParams,
     Notebook,
@@ -77,6 +78,7 @@ __all__ = [
     "NetworkError",
     # Models
     "Token",
+    "AiAuthTag",
     "TokenCreateParams",
     "TokenUpdateParams",
     "Notebook",

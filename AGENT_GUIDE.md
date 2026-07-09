@@ -4,10 +4,58 @@ This guide helps teams build products or internal tools with the OfSpectrum Pyth
 
 It covers SDK capabilities, token modeling choices, notebook/provenance patterns, security notes, and test flows. It also includes a prompt template for AI coding agents, such as Codex, after the integration requirements are clear.
 
+## Repository Orientation for Agents
+
+The public SDK repository is:
+
+```text
+https://github.com/ofspectrum/python-sdk
+```
+
+Customer applications should normally install the SDK with `pip install ofspectrum`; they should not need the private Neo monorepo source.
+
+If an agent needs SDK source orientation, use the public SDK repository above. From that repository root, inspect these files first:
+
+1. `README.md` for SDK installation, public examples, and user-facing usage.
+2. `pyproject.toml` for package name, version, dependencies, and Python requirements.
+3. `ofspectrum/` for the SDK client implementation, resource modules, exceptions, and return models.
+4. `test_api.py` for a compact end-to-end usage example.
+5. `examples/audio/` for local smoke-test audio files.
+
+Use this guide for integration decisions and product modeling.
+Use the public SDK `README.md` for package usage details.
+Use SDK source and tests to verify method signatures, exception locations, return object shapes, and smoke-test flows.
+
+Do not make the customer application depend on the SDK repository path at runtime. The application should depend on the installed `ofspectrum` package and `OFSPECTRUM_API_KEY`.
+
+## Starter Prompt
+
+If you are not sure how to start, copy this prompt into your AI coding agent first:
+
+```text
+I want to use the OfSpectrum Python SDK for audio watermarking.
+I am either building a new product/tool or adding watermarking to an existing project — I will tell you which.
+
+Please help me design the integration before writing code.
+Ask me one question at a time.
+Start by asking whether this is a new project or an existing codebase. If it is existing, ask about the current stack, the domain entities I already have, and where I already store data, so the integration maps onto what exists instead of adding a parallel structure.
+After each answer, briefly explain what that choice means for token design, metadata, storage, or audio workflow.
+Do not start implementation until the required choices are clear.
+
+Use the OfSpectrum SDK integration guide as the source of truth.
+```
+
 ## Prompt Template for AI Coding Agents
 
 ```text
-You are building an application that uses the OfSpectrum Python SDK for audio watermarking.
+You are helping design and build an application that uses the OfSpectrum Python SDK for audio watermarking.
+
+Before writing code, first ask the user the integration questions below.
+Ask one question at a time because the user may not know all choices upfront.
+After each answer, briefly explain the implication, then ask the next question.
+Do not ask the full checklist in one message unless the user explicitly requests it.
+Do not infer or choose defaults unless the user explicitly asks you to proceed with defaults.
+After the user answers, summarize the selected integration plan, then implement.
 
 Use the official SDK package:
 
@@ -15,8 +63,36 @@ from ofspectrum import OfSpectrum
 
 The application must use an API key created in the OfSpectrum dashboard. Do not implement API key creation in the customer app.
 
+Ask these questions before implementation, one at a time:
+
+1. Are you starting a new project or adding OfSpectrum to an existing codebase? If existing, describe the stack (language/framework), the primary domain entities you already have, where you currently store data, and how audio is handled today.
+2. What is the application goal, or what does the existing app do and where should watermarking fit?
+3. What is the primary entity that should be traceable: voice actor, project, audio asset, or something custom? For an existing project, map this onto an entity you already have.
+4. Should each watermarked file get a unique token, or share a token with a voice actor/project/asset group?
+5. Do you need a custom public verification key? If not, use Standard tokens.
+6. What metadata should be public?
+7. What metadata should be private and credential-gated?
+8. Do you need to store license, provenance, or C2PA-like manifest files?
+9. Should the app support encode only, decode lookup, streaming PCM encode, or all of them?
+10. Where should token IDs, notebook IDs, media IDs, and file records be stored? For an existing project, prefer adding columns/relations to existing records rather than creating a parallel schema.
+11. For a new project: what should be built (CLI app, web server, worker, API service, notebook script)? For an existing project: where in the current codebase should encode/decode/notebook calls be added (e.g. upload handler, publish step, background job, moderation pipeline)?
+
+Recommended interview flow:
+
+1. Start with new-vs-existing. For an existing codebase, capture the current stack, entities, and storage first.
+2. Then the product goal, or where watermarking fits in the existing app.
+3. Then decide token ownership, mapping onto existing entities when integrating.
+4. Then decide public/private metadata and provenance needs.
+5. Then decide audio workflows.
+6. Then decide integration points, architecture, and storage — reuse existing storage for an existing project.
+7. Only after those answers are clear, propose an implementation plan.
+
+Project context:
+- New project, or existing codebase?
+- If existing: language/framework, existing domain entities, existing datastore, and how audio is handled today.
+
 Application goal:
-- [Describe the product, e.g. voice marketplace, project collaboration app, audio asset registry, licensing workflow]
+- [Describe the product or, for an existing app, what it does and where watermarking fits]
 
 Token ownership model:
 - Choose one:
@@ -52,13 +128,16 @@ Implementation requirements:
 - Catch OfSpectrumError and its subclasses.
 - Treat quota errors as customer-actionable errors.
 - Keep token IDs and notebook IDs in the app database.
+- For an existing project, reuse the current datastore and add references (e.g. ofs_token_id) to existing records instead of duplicating a parallel schema.
+- Do not change existing auth, storage, or framework conventions more than the integration requires.
 - Show clear, customer-facing error messages.
 - Run the final smoke tests listed in this guide.
 
-Build:
-- [CLI app / web server / worker / API service / notebook script]
+Build / integration:
+- New project: [CLI app / web server / worker / API service / notebook script]
+- Existing project: [where the SDK calls are added — e.g. upload endpoint, publish job, moderation pipeline]
 - Language/framework:
-- Storage/database:
+- Storage/database (reuse existing when integrating):
 - File upload/storage approach:
 - Expected user flows:
 ```
@@ -99,6 +178,20 @@ from ofspectrum import OfSpectrum
 client = OfSpectrum(api_key=os.environ["OFSPECTRUM_API_KEY"])
 ```
 
+Optional client settings:
+
+```python
+client = OfSpectrum(
+    api_key=os.environ["OFSPECTRUM_API_KEY"],
+    base_url="https://api.ofspectrum.com/api/v1",  # override only for testing
+    timeout=120.0,                                  # seconds
+)
+```
+
+`OfSpectrum` also works as a context manager (`with OfSpectrum(...) as client:`) so the underlying HTTP connection is closed cleanly.
+
+An `AsyncOfSpectrum` client is also exported and used with `async with`. It is currently experimental: its resource methods (`client.tokens.list()`, etc.) still execute synchronously and emit a warning when called inside a running event loop. Prefer the synchronous `OfSpectrum` client for production until true async is available.
+
 Customers must create API keys in the OfSpectrum dashboard. The SDK does not need to create or manage API keys.
 
 ### Tokens
@@ -110,8 +203,30 @@ Supported SDK methods:
 ```python
 client.tokens.list()
 client.tokens.get(token_id)
-client.tokens.create(name, token_type="standard", public_key=None)
-client.tokens.update(token_id, name=None, public_key=None)
+client.tokens.create(
+    name,
+    token_type="standard",
+    public_key=None,
+    ai_auth_enabled=False,
+    ai_auth_access_type=None,
+    ai_auth_price=None,
+    ai_auth_other_instructions=None,
+    ai_auth_tags=None,
+)
+client.tokens.list_ai_auth_tags()
+client.tokens.create_ai_auth_tag(tag)
+client.tokens.update(
+    token_id,
+    name=None,
+    public_key=None,
+    token_type=None,
+    enterprise_verification=None,
+    ai_auth_enabled=None,
+    ai_auth_access_type=None,
+    ai_auth_price=None,
+    ai_auth_other_instructions=None,
+    ai_auth_tags=None,
+)
 ```
 
 Current public token types:
@@ -125,7 +240,31 @@ Recommended behavior:
 
 - Create Standard tokens by default.
 - Create Pro tokens only when the customer explicitly needs a configurable verification key.
+- Existing tokens can be upgraded from Standard to Pro, but cannot be downgraded.
+- A token type upgrade may consume quota or incur a billing charge.
 - Store token IDs in the customer app database.
+
+### AI Authorization
+
+Tokens can publish how AI systems are allowed to use the associated content.
+
+Supported token fields:
+
+| Field | Meaning |
+|-------|---------|
+| `ai_auth_enabled` | Enables or disables the AI authorization policy. |
+| `ai_auth_access_type` | Optional access mode: `direct_use` or `premium_track`. |
+| `ai_auth_price` | Optional price. When set, it must be at least `1`. |
+| `ai_auth_other_instructions` | Additional human-readable usage instructions. |
+| `ai_auth_tags` | Searchable labels associated with the policy. |
+
+Use `client.tokens.create()` to configure these fields on a new token, or `client.tokens.update()` to modify them. Updating `ai_auth_tags` replaces the complete tag list; pass an empty list to remove all tags. Pass `ai_auth_price=None` explicitly to clear an existing price.
+
+AI authorization tags are reusable account-level labels. Use
+`client.tokens.list_ai_auth_tags()` to load existing choices and
+`client.tokens.create_ai_auth_tag()` to create a new choice. Creating a tag
+does not attach it to a token; pass its `tag` value in `ai_auth_tags` during
+token create or update.
 
 ### Audio Encode
 
@@ -200,14 +339,22 @@ Supported SDK methods:
 
 ```python
 client.notebooks.list(token_id)
-client.notebooks.create(token_id, note_name, text_content, is_public=True, credential_val=None)
+client.notebooks.get(note_id)
+client.notebooks.create(token_id, note_name, text_content=None, is_public=True, credential_val=None)
 client.notebooks.update(note_id, note_name=None, text_content=None, credential_val=None)
 client.notebooks.delete(note_id)
-client.notebooks.upload_media(note_id, file)
+client.notebooks.upload_media(note_id, file, filename=None, media_type=None)
 client.notebooks.list_media(note_id)
+client.notebooks.get_media_url(media_id)
 client.notebooks.download_media(media_id, output_path=None)
 client.notebooks.delete_media(media_id)
 ```
+
+Media helper notes:
+
+- `upload_media` accepts a path, `Path`, or file object. `filename` and `media_type` are optional; when omitted the SDK derives them from the file. Any file type is accepted (see the media limits below).
+- `get_media_url` returns a short-lived signed URL for a media file (useful for previews or handing a link to a browser).
+- `download_media` returns the raw bytes, or writes to `output_path` and returns the path when provided.
 
 Use notebooks for:
 
@@ -230,8 +377,9 @@ Notebook limits:
 
 | Token Type | Public Notebooks | Private Notebooks |
 |------------|------------------|-------------------|
-| `standard` | 1 | 0 |
-| `pro` | 1 | 1 |
+| `standard` | 1 | 1 |
+| `pro` | 1 | Unlimited |
+| `enterprise` | 1 | Unlimited |
 
 Default naming:
 
@@ -244,13 +392,22 @@ Additional constraints:
 - Notebook names must be unique under the same token.
 - Private notebook credentials must be unique under the same token.
 - Private notebook credentials are optional at the SDK level, but apps that need credential-gated private metadata should explicitly pass `credential_val`.
-- Notebook media is intended for supporting files such as manifests, licenses, images, or small references. Avoid large assets; the default total media limit is 100 MB per notebook.
-- If a customer app needs private metadata, use a Pro token.
+- Notebook media is intended for supporting files such as manifests, licenses, images, or small references. Each notebook accepts at most 10 files, each file may be up to 100 MB, and the combined media limit is 10 GB per notebook.
+- Standard tokens support one private notebook. Existing Pro and Enterprise tokens have no private notebook limit.
 - If a token already has a public notebook, update the existing notebook instead of creating another one.
 
 ### Quotas
 
 Use quota methods to preflight customer actions and show actionable UI.
+
+Supported SDK methods:
+
+```python
+client.quotas.get_encode_quota()                          # -> Quota
+client.quotas.get_decode_quota()                          # -> Quota
+client.quotas.check_encode_available(duration_seconds)    # -> bool
+client.quotas.check_decode_available(duration_seconds)    # -> bool
+```
 
 ```python
 encode_quota = client.quotas.get_encode_quota()
@@ -260,7 +417,32 @@ if client.quotas.check_encode_available(duration_seconds=300):
     client.audio.encode(audio="input.wav", token_id=token.id)
 ```
 
+A `Quota` exposes `limit`, `used`, `remaining`, `used_percentage`, `is_exceeded`, and `reset_at`.
+
 Show quota errors as customer-actionable messages in the application UI.
+
+### Retry and Resilience
+
+The SDK does not retry automatically. For flaky-network or rate-limited workloads, wrap calls with the exported retry helpers.
+
+```python
+from ofspectrum import RetryConfig, with_retry
+
+@with_retry(RetryConfig(max_retries=3))
+def encode_with_retry():
+    return client.audio.encode(audio="input.wav", token_id=token.id)
+
+result = encode_with_retry()
+```
+
+Behavior:
+
+- `RetryConfig` supports `max_retries` (default 3), exponential backoff, and jitter.
+- Retries only transient errors: `RateLimitError`, `ServiceUnavailableError`, and `NetworkError`. Other errors (auth, validation, quota, watermark-exists) are raised immediately.
+- On `RateLimitError`, the helper waits for the server's `retry_after` when present.
+- `with_retry` accepts an optional `on_retry(exception, attempt)` callback for logging.
+
+Do not use retries to work around `QuotaExceededError` or `WatermarkExistsError`; those are customer-actionable, not transient.
 
 ## Token Modeling Patterns
 
@@ -438,7 +620,9 @@ client.notebooks.upload_media(
 
 ## Customer App Architecture
 
-Recommended app database tables:
+For a new project, create dedicated tables as shown below. For an existing project, prefer mapping these fields onto records you already have — for example, add `ofs_token_id` to an existing voice-actor/project/asset row and store notebook/media IDs alongside the related record — rather than adding a parallel schema.
+
+Recommended app database tables (new project):
 
 ```text
 ofs_tokens
@@ -480,7 +664,7 @@ Recommended runtime flow:
 - API keys are created in the OfSpectrum dashboard, not through the SDK.
 - Token IDs, notebook IDs, and media IDs should be stored in the customer app database.
 - Standard tokens are the safest default for new workflows.
-- Pro tokens are needed when the workflow requires a configurable `public_key` or private notebook metadata.
+- Pro tokens are needed when the workflow requires a configurable `public_key` or unlimited private notebooks.
 - The standard SDK encode flow refuses already-watermarked audio instead of overwriting the existing watermark.
 - Decode returns a token ID when a watermark is detected; the customer app should use that token ID to look up its own local business metadata.
 - Quota can change between a preflight check and the actual encode/decode call, so still handle quota errors from the final request.
@@ -513,14 +697,15 @@ Show concise, customer-facing error messages rather than raw API payloads.
 
 Ask the customer these questions before coding:
 
-1. What is the primary entity that should be traceable: voice actor, project, or audio asset?
-2. Should each watermarked file get a unique token, or share a token?
-3. Do you need a custom public verification key? If not, use Standard tokens.
-4. What metadata should be public?
-5. What metadata should be private and credential-gated?
-6. Do you need to store license/provenance/C2PA-like manifests?
-7. Should the app support decode and lookup workflows?
-8. Where should token IDs, notebook IDs, and file records be stored locally?
+1. New project or an existing codebase? If existing, what is the stack, what entities exist, and where is data stored today?
+2. What is the primary entity that should be traceable: voice actor, project, or audio asset? Map onto an existing entity when integrating.
+3. Should each watermarked file get a unique token, or share a token?
+4. Do you need a custom public verification key? If not, use Standard tokens.
+5. What metadata should be public?
+6. What metadata should be private and credential-gated?
+7. Do you need to store license/provenance/C2PA-like manifests?
+8. Should the app support decode and lookup workflows?
+9. Where should token IDs, notebook IDs, and file records be stored? Reuse existing storage when integrating.
 
 Generate code only after these choices are clear.
 
@@ -540,9 +725,10 @@ Ask the agent to run these checks after implementation. Use a staging or test AP
 3. **Notebook check**
    - Create one public notebook for the token.
    - Confirm creating a second public notebook is handled as a clear validation error.
-   - If using Pro tokens, create one private notebook with a credential.
-   - Confirm Standard tokens do not allow private notebooks.
+   - Create one private notebook with a credential on a Standard token.
+   - If using a Pro token, confirm multiple private notebooks can be created.
    - Upload a small manifest or license file as notebook media.
+   - Confirm an eleventh media file is rejected.
 
 4. **Encode/decode check**
    - Encode one sample audio file.
