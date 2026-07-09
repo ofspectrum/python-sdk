@@ -222,8 +222,8 @@ def _raise_detail_error(message: str, status_code: int):
     if message == "Private notebook limit reached for this token":
         raise ValidationError(
             message=(
-                "Private notebook limit reached for this token. Standard tokens do not support "
-                "private notebooks; Pro tokens support one private notebook."
+                "Private notebook limit reached for this token. Standard tokens support one "
+                "private notebook; Pro tokens have no private notebook limit."
             ),
             code="NotebookLimit",
             status_code=status_code or 400,

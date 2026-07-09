@@ -85,7 +85,42 @@ token = client.tokens.update(
     token_id="token-uuid",
     public_key=verification_key,
 )
+
+# Upgrade an existing Standard token to Pro.
+# Token types can be upgraded, but not downgraded.
+token = client.tokens.update(
+    token_id="token-uuid",
+    token_type="pro",
+    public_key=verification_key,
+)
+
+# Configure how the token may be used by AI systems.
+token = client.tokens.update(
+    token_id="token-uuid",
+    ai_auth_enabled=True,
+    ai_auth_access_type="direct_use",  # or "premium_track"
+    ai_auth_price=5,
+    ai_auth_other_instructions="Attribution required",
+    ai_auth_tags=["voice", "licensed"],
+)
 ```
+
+Passing `ai_auth_price=None` clears the price. Passing `ai_auth_tags=[]` removes all AI authorization tags from the token.
+
+Reusable AI authorization tags can be listed or created separately:
+
+```python
+tags = client.tokens.list_ai_auth_tags()
+voice_tag = client.tokens.create_ai_auth_tag("Voice Clone")
+
+client.tokens.update(
+    token_id="token-uuid",
+    ai_auth_tags=[voice_tag.tag],
+)
+```
+
+Creating a tag does not attach it to a token. Pass the selected tag names to
+`tokens.create()` or `tokens.update()` to associate them with a token.
 
 Token deletion is not available via API. Tokens are consumable resources.
 
@@ -144,8 +179,9 @@ Notebook limits:
 
 | Token Type | Public Notebooks | Private Notebooks |
 |------------|------------------|-------------------|
-| `standard` | 1 | 0 |
-| `pro` | 1 | 1 |
+| `standard` | 1 | 1 |
+| `pro` | 1 | Unlimited |
+| `enterprise` | 1 | Unlimited |
 
 If the limit is reached, the SDK raises a `ValidationError` with a customer-facing message.
 
@@ -172,6 +208,9 @@ client.notebooks.upload_media(
 
 notebooks = client.notebooks.list(token_id=token.id)
 ```
+
+Each notebook accepts up to 10 media files. Each file may be up to 100 MB, and
+the combined media size limit is 10 GB per notebook.
 
 ## Quota Checking
 
