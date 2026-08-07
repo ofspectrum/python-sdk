@@ -2,10 +2,18 @@
 Tokens resource for managing watermark tokens
 """
 
-from typing import Any, List, Literal, Optional
-from .base import BaseResource
-from ..models.token import AiAuthTag, UNSET, Token, TokenCreateParams, TokenUpdateParams
+from typing import Any, List, Literal, Optional, overload
+
 from ..exceptions import raise_for_error
+from ..models.token import (
+    UNSET,
+    AiAuthTag,
+    OptionalBoolArgument,
+    Token,
+    TokenCreateParams,
+    TokenUpdateParams,
+)
+from .base import BaseResource
 
 
 class TokensResource(BaseResource):
@@ -75,6 +83,36 @@ class TokensResource(BaseResource):
             return Token.from_dict(data[0])
         return Token.from_dict(data.get("data", {}) if isinstance(data, dict) else {})
 
+    @overload
+    def create(
+        self,
+        name: str,
+        token_type: Literal["pro"],
+        public_key: int,
+        ai_auth_enabled: bool = False,
+        ai_auth_access_type: Optional[Literal["direct_use", "premium_track"]] = None,
+        ai_auth_price: Optional[float] = None,
+        ai_auth_other_instructions: Optional[str] = None,
+        ai_auth_tags: Optional[List[str]] = None,
+        version_control_override: OptionalBoolArgument = UNSET,
+        storage_auto_expand_override: OptionalBoolArgument = UNSET,
+    ) -> Token: ...
+
+    @overload
+    def create(
+        self,
+        name: str,
+        token_type: Literal["standard"] = "standard",
+        public_key: Optional[int] = None,
+        ai_auth_enabled: bool = False,
+        ai_auth_access_type: Optional[Literal["direct_use", "premium_track"]] = None,
+        ai_auth_price: Optional[float] = None,
+        ai_auth_other_instructions: Optional[str] = None,
+        ai_auth_tags: Optional[List[str]] = None,
+        version_control_override: OptionalBoolArgument = UNSET,
+        storage_auto_expand_override: OptionalBoolArgument = UNSET,
+    ) -> Token: ...
+
     def create(
         self,
         name: str,
@@ -85,6 +123,8 @@ class TokensResource(BaseResource):
         ai_auth_price: Optional[float] = None,
         ai_auth_other_instructions: Optional[str] = None,
         ai_auth_tags: Optional[List[str]] = None,
+        version_control_override: OptionalBoolArgument = UNSET,
+        storage_auto_expand_override: OptionalBoolArgument = UNSET,
     ) -> Token:
         """
         Create a new watermark token.
@@ -92,13 +132,16 @@ class TokensResource(BaseResource):
         Args:
             name: Token name (for identification)
             token_type: "standard" (default) or "pro"
-            public_key: Verification key when your token workflow requires one.
-                        Defaults to 258 for pro tokens if not provided.
+            public_key: Verification key, required for pro tokens
             ai_auth_enabled: Whether AI authorization is enabled
             ai_auth_access_type: "direct_use" or "premium_track" (optional)
             ai_auth_price: AI authorization price; must be at least 1 when set
             ai_auth_other_instructions: Additional AI authorization instructions
             ai_auth_tags: Searchable AI authorization tags
+            version_control_override: True/False to override, None to inherit,
+                                      or omit to use the API default
+            storage_auto_expand_override: True/False to override, None to inherit,
+                                          or omit to use the API default
 
         Returns:
             Newly created Token object
@@ -120,9 +163,6 @@ class TokensResource(BaseResource):
         if token_type not in ("standard", "pro"):
             raise ValueError("token_type must be 'standard' or 'pro'")
 
-        # Set default public_key for pro type
-        if token_type == "pro" and public_key is None:
-            public_key = 258  # Default public key, matches web interface
         params = TokenCreateParams(
             name=name,
             token_type=token_type,
@@ -132,6 +172,8 @@ class TokensResource(BaseResource):
             ai_auth_price=ai_auth_price,
             ai_auth_other_instructions=ai_auth_other_instructions,
             ai_auth_tags=ai_auth_tags,
+            version_control_override=version_control_override,
+            storage_auto_expand_override=storage_auto_expand_override,
         )
 
         response = self._post("/tokens/", json=params.to_dict())
@@ -155,6 +197,8 @@ class TokensResource(BaseResource):
         ai_auth_price: Any = UNSET,
         ai_auth_other_instructions: Optional[str] = None,
         ai_auth_tags: Optional[List[str]] = None,
+        version_control_override: OptionalBoolArgument = UNSET,
+        storage_auto_expand_override: OptionalBoolArgument = UNSET,
     ) -> Token:
         """
         Update an existing token.
@@ -170,6 +214,10 @@ class TokensResource(BaseResource):
             ai_auth_price: AI authorization price, or None to clear it
             ai_auth_other_instructions: Additional AI authorization instructions
             ai_auth_tags: Replacement list of AI authorization tags
+            version_control_override: True/False to override, None to inherit,
+                                      or omit to leave unchanged
+            storage_auto_expand_override: True/False to override, None to inherit,
+                                          or omit to leave unchanged
 
         Returns:
             Updated Token object
@@ -184,6 +232,8 @@ class TokensResource(BaseResource):
             ai_auth_price=ai_auth_price,
             ai_auth_other_instructions=ai_auth_other_instructions,
             ai_auth_tags=ai_auth_tags,
+            version_control_override=version_control_override,
+            storage_auto_expand_override=storage_auto_expand_override,
         )
 
         update_data = params.to_dict()

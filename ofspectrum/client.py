@@ -4,22 +4,36 @@ OfSpectrum API Client
 Main entry point for the SDK.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 import httpx
 
+from .exceptions import NetworkError, raise_for_error
 from .resources import (
-    TokensResource,
-    NotebooksResource,
     AudioResource,
+    NotebookCommitsResource,
+    NotebooksResource,
     QuotasResource,
     # WebhooksResource,  # Not yet available
+    TokensResource,
 )
-from .exceptions import (
-    OfSpectrumError,
-    AuthenticationError,
-    NetworkError,
-    raise_for_error,
-)
+
+
+def _raise_response_error(response: httpx.Response) -> None:
+    """Map every unsuccessful HTTP response to a sanitized SDK exception."""
+
+    if response.status_code < 400:
+        return
+    try:
+        payload = response.json()
+    except (TypeError, ValueError):
+        payload = None
+    raise_for_error(payload, response.status_code)
+
+
+def _checked_response(response: httpx.Response) -> httpx.Response:
+    _raise_response_error(response)
+    return response
 
 
 class OfSpectrum:
@@ -80,6 +94,7 @@ class OfSpectrum:
         # Initialize resources
         self.tokens = TokensResource(self)
         self.notebooks = NotebooksResource(self)
+        self.notebook_commits = NotebookCommitsResource(self)
         self.audio = AudioResource(self)
         self.quotas = QuotasResource(self)
         # self.webhooks = WebhooksResource(self)  # Not yet available
@@ -88,7 +103,7 @@ class OfSpectrum:
         """Get default request headers"""
         return {
             "Authorization": f"Bearer {self._api_key}",
-            "User-Agent": "OfSpectrum-Python-SDK/1.0.0",
+            "User-Agent": "OfSpectrum-Python-SDK/1.2.0",
             "Accept": "application/json",
         }
 
@@ -100,6 +115,7 @@ class OfSpectrum:
         json: Optional[Dict[str, Any]] = None,
         data: Optional[Dict[str, Any]] = None,
         files: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
         timeout: Optional[float] = None,
     ) -> httpx.Response:
         """
@@ -112,6 +128,7 @@ class OfSpectrum:
             json: JSON body
             data: Form data
             files: Files to upload
+            headers: Request-specific headers
             timeout: Optional request timeout
 
         Returns:
@@ -141,20 +158,16 @@ class OfSpectrum:
         if files:
             request_kwargs["files"] = files
 
+        if headers:
+            request_kwargs["headers"] = headers
+
         if timeout:
             request_kwargs["timeout"] = timeout
 
         try:
             response = self._client.request(**request_kwargs)
 
-            # Check for authentication errors
-            if response.status_code == 401:
-                raise AuthenticationError(
-                    message="Invalid or expired API key",
-                    status_code=401,
-                )
-
-            return response
+            return _checked_response(response)
 
         except httpx.TimeoutException as e:
             raise NetworkError(f"Request timed out: {e}")
@@ -213,6 +226,7 @@ class AsyncOfSpectrum:
         # Resources will be initialized when client is opened
         self.tokens: Optional[TokensResource] = None
         self.notebooks: Optional[NotebooksResource] = None
+        self.notebook_commits: Optional[NotebookCommitsResource] = None
         self.audio: Optional[AudioResource] = None
         self.quotas: Optional[QuotasResource] = None
         # self.webhooks: Optional[WebhooksResource] = None  # Not yet available
@@ -220,7 +234,7 @@ class AsyncOfSpectrum:
     def _default_headers(self) -> Dict[str, str]:
         return {
             "Authorization": f"Bearer {self._api_key}",
-            "User-Agent": "OfSpectrum-Python-SDK/1.0.0",
+            "User-Agent": "OfSpectrum-Python-SDK/1.2.0",
             "Accept": "application/json",
         }
 
@@ -235,6 +249,7 @@ class AsyncOfSpectrum:
         # Note: For true async, resources would need async versions
         self.tokens = TokensResource(self)
         self.notebooks = NotebooksResource(self)
+        self.notebook_commits = NotebookCommitsResource(self)
         self.audio = AudioResource(self)
         self.quotas = QuotasResource(self)
         # self.webhooks = WebhooksResource(self)  # Not yet available
@@ -269,12 +284,7 @@ class AsyncOfSpectrum:
 
             try:
                 response = await self._client.request(**kwargs)
-                if response.status_code == 401:
-                    raise AuthenticationError(
-                        message="Invalid or expired API key",
-                        status_code=401,
-                    )
-                return response
+                return _checked_response(response)
             except httpx.TimeoutException as e:
                 raise NetworkError(f"Request timed out: {e}")
             except httpx.RequestError as e:
@@ -298,7 +308,7 @@ class AsyncOfSpectrum:
                     url = path if path.startswith("/") else f"/{path}"
                     kwargs["url"] = url
                     kwargs["method"] = method
-                    return sync_client.request(**kwargs)
+                    return _checked_response(sync_client.request(**kwargs))
             else:
                 return loop.run_until_complete(_async_request())
         except RuntimeError:
@@ -311,4 +321,4 @@ class AsyncOfSpectrum:
                 url = path if path.startswith("/") else f"/{path}"
                 kwargs["url"] = url
                 kwargs["method"] = method
-                return sync_client.request(**kwargs)
+                return _checked_response(sync_client.request(**kwargs))

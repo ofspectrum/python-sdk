@@ -2,9 +2,9 @@
 Quotas resource for checking service usage
 """
 
-from .base import BaseResource
-from ..models.quota import Quota, QuotaList
 from ..exceptions import raise_for_error
+from ..models.quota import Quota, QuotaList
+from .base import BaseResource
 
 
 class QuotasResource(BaseResource):

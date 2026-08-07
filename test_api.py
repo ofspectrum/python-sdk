@@ -6,70 +6,32 @@ Usage:
     # Set environment variables first
     export TEST_API_KEY_USER_A="your_api_key"
     export TEST_API_KEY_USER_B="another_api_key"
-    export TEST_API_BASE_URL="http://localhost:8000/api/v1"  # optional
+    export TEST_API_BASE_URL="http://localhost:8800/api/v1"  # optional
 
     # Run test
     python test_api.py
 """
 
 import os
+import struct
 import sys
-import subprocess
+import traceback
+import wave
 from pathlib import Path
+
+import requests
+
+from ofspectrum import OfSpectrum
+from ofspectrum.exceptions import AuthenticationError, OfSpectrumError, ValidationError
+
+__test__ = False
 
 # Fix Windows console encoding
 if sys.platform == 'win32':
     try:
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    except:
+    except (AttributeError, OSError):
         pass
-
-# =============================================================================
-# Auto-install dependencies
-# =============================================================================
-
-def check_and_install_deps():
-    """Check and install required dependencies"""
-    required = ['requests']
-    missing = []
-
-    for pkg in required:
-        try:
-            __import__(pkg)
-        except ImportError:
-            missing.append(pkg)
-
-    if missing:
-        print(f"[Setup] Installing missing dependencies: {missing}")
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install'] + missing,
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print("  Dependencies installed")
-
-    # Check if SDK is installed or available locally
-    sdk_path = Path(__file__).parent
-    if (sdk_path / 'ofspectrum').exists():
-        # Local SDK available
-        sys.path.insert(0, str(sdk_path))
-    else:
-        # Try to install from PyPI
-        try:
-            import ofspectrum
-        except ImportError:
-            print("[Setup] Installing ofspectrum SDK...")
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'ofspectrum'],
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            print("  SDK installed")
-
-check_and_install_deps()
-
-import json
-import traceback
-import requests
-import wave
-import struct
-
-from ofspectrum import OfSpectrum
-from ofspectrum.exceptions import OfSpectrumError, AuthenticationError, ValidationError
 
 # =============================================================================
 # Configuration
@@ -78,14 +40,7 @@ from ofspectrum.exceptions import OfSpectrumError, AuthenticationError, Validati
 # Load from environment variables
 API_KEY_USER_A = os.environ.get("TEST_API_KEY_USER_A", "")
 API_KEY_USER_B = os.environ.get("TEST_API_KEY_USER_B", "")
-BASE_URL = os.environ.get("TEST_API_BASE_URL", "http://localhost:8000/api/v1")
-
-if not API_KEY_USER_A or not API_KEY_USER_B:
-    print("Please set environment variables:")
-    print("  TEST_API_KEY_USER_A=<your_api_key>")
-    print("  TEST_API_KEY_USER_B=<another_api_key>")
-    print("  TEST_API_BASE_URL=<optional, defaults to localhost:8000>")
-    sys.exit(1)
+BASE_URL = os.environ.get("TEST_API_BASE_URL", "http://localhost:8800/api/v1")
 
 # Test results tracking
 results = {
@@ -237,7 +192,7 @@ def test_url_decode(api_key, audio_path):
 
         if response.status_code == 200:
             data = response.json()
-            log_pass("[URL] POST decode", f"Status: 200")
+            log_pass("[URL] POST decode", "Status: 200")
 
             # Check response fields
             if 'data' in data:
@@ -518,6 +473,19 @@ def test_sdk_notebooks(client, token_id, audio_path):
         log_warn("[SDK] notebooks", "No notebooks to test")
         return
 
+    # Read the authoritative current projection used by revision-safe saves.
+    try:
+        current = client.notebooks.get(test_notebook.id)
+        if current.revision is None or current.media is None:
+            log_fail("[SDK] notebooks.get()", "Current revision or media is missing")
+        else:
+            log_pass(
+                "[SDK] notebooks.get()",
+                f"Revision {current.revision}, {len(current.media)} ordered media files",
+            )
+    except Exception as e:
+        log_fail("[SDK] notebooks.get()", str(e))
+
     # List media
     try:
         media_list = client.notebooks.list_media(note_id=test_notebook.id)
@@ -581,6 +549,13 @@ def test_sdk_invalid_api_key():
 # =============================================================================
 
 def main():
+    if not API_KEY_USER_A or not API_KEY_USER_B:
+        print("Please set environment variables:")
+        print("  TEST_API_KEY_USER_A=<your_api_key>")
+        print("  TEST_API_KEY_USER_B=<another_api_key>")
+        print("  TEST_API_BASE_URL=<optional, defaults to localhost:8800>")
+        return
+
     print("=" * 70)
     print("Complete API Test - SDK + Direct URL")
     print("=" * 70)
