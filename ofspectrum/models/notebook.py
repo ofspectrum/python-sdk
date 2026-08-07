@@ -2,8 +2,14 @@
 Notebook models for watermark token notes
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, List
+from dataclasses import dataclass
+from typing import List, Optional
+
+
+def _preferred_value(data: dict, current_key: str, legacy_key: str):
+    """Prefer an explicitly present current field, including empty values."""
+
+    return data.get(current_key) if current_key in data else data.get(legacy_key)
 
 
 @dataclass
@@ -16,6 +22,20 @@ class NotebookMedia:
     file_size: Optional[int] = None
     content_type: Optional[str] = None
     created_at: Optional[str] = None
+    display_order: Optional[int] = None
+    updated_at: Optional[str] = None
+
+    @property
+    def file_size_bytes(self) -> Optional[int]:
+        """Current API name for the media size, preserving ``file_size`` compatibility."""
+
+        return self.file_size
+
+    @property
+    def media_type(self) -> Optional[str]:
+        """Current API name for the detected type, preserving ``content_type`` compatibility."""
+
+        return self.content_type
 
     @classmethod
     def from_dict(cls, data: dict) -> "NotebookMedia":
@@ -24,9 +44,11 @@ class NotebookMedia:
             id=data["id"],
             filename=data.get("filename", ""),
             file_url=data.get("file_url") or data.get("media_public"),
-            file_size=data.get("file_size"),
-            content_type=data.get("content_type"),
+            file_size=_preferred_value(data, "file_size_bytes", "file_size"),
+            content_type=_preferred_value(data, "media_type", "content_type"),
             created_at=data.get("created_at"),
+            display_order=data.get("display_order"),
+            updated_at=data.get("updated_at"),
         )
 
 
@@ -40,9 +62,10 @@ class Notebook:
     text_content: Optional[str] = None  # Backend uses text_content instead of content
     is_public: bool = False
     credential_val: Optional[str] = None  # Credential for private notes
-    media: List[NotebookMedia] = field(default_factory=list)
+    media: Optional[List[NotebookMedia]] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    revision: Optional[int] = None
 
     # Alias properties for backward compatibility
     @property
@@ -56,17 +79,30 @@ class Notebook:
     @classmethod
     def from_dict(cls, data: dict) -> "Notebook":
         """Create Notebook from API response dict"""
-        media_list = data.get("media") or []
+        media_data = data.get("media")
+        media = (
+            [NotebookMedia.from_dict(item) for item in media_data]
+            if isinstance(media_data, list)
+            else None
+        )
+        if media is not None:
+            media.sort(
+                key=lambda item: (
+                    item.display_order is None,
+                    item.display_order if item.display_order is not None else 0,
+                )
+            )
         return cls(
             id=data["id"],
             token_id=data.get("token_id", ""),
-            note_name=data.get("note_name", "") or data.get("title", ""),
-            text_content=data.get("text_content") or data.get("content"),
+            note_name=_preferred_value(data, "note_name", "title") or "",
+            text_content=_preferred_value(data, "text_content", "content"),
             is_public=data.get("is_public", False),
             credential_val=data.get("credential_val"),
-            media=[NotebookMedia.from_dict(m) for m in media_list],
+            media=media,
             created_at=data.get("created_at"),
             updated_at=data.get("updated_at"),
+            revision=data.get("revision"),
         )
 
 

@@ -2,7 +2,8 @@
 Base resource class for API resources
 """
 
-from typing import TYPE_CHECKING, Optional, Dict, Any
+from typing import TYPE_CHECKING, Any, Dict, Optional
+
 import httpx
 
 if TYPE_CHECKING:

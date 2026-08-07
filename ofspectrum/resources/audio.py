@@ -2,14 +2,14 @@
 Audio resource for watermark encoding and decoding
 """
 
-from typing import Any, Iterable, Union, Optional, BinaryIO
-from pathlib import Path
 import json
+from pathlib import Path
+from typing import Any, BinaryIO, Iterable, Optional, Union
 from urllib.parse import urlsplit, urlunsplit
-import httpx
-from .base import BaseResource
+
+from ..exceptions import OfSpectrumError, raise_for_error
 from ..models.audio import DecodeResult, EncodeResult, StreamingEncodeResult
-from ..exceptions import raise_for_error, OfSpectrumError
+from .base import BaseResource
 
 
 class AudioResource(BaseResource):
