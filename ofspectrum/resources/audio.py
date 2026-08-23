@@ -99,6 +99,7 @@ class StreamEncodePool:
         smooth: bool,
         verify_and_reencode: bool,
         timeout: Optional[float],
+        keepalive_interval_seconds: Optional[float] = None,
     ) -> None:
         self._resource = resource
         self._token_id = token_id
@@ -108,12 +109,22 @@ class StreamEncodePool:
         self._smooth = smooth
         self._verify_and_reencode = verify_and_reencode
         self._timeout = timeout
+        self._keepalive_interval = keepalive_interval_seconds
         self._slots = [_StreamPoolSlot() for _ in range(connections)]
         self._idle = deque(self._slots)
         self._idle_lock = threading.Lock()
         self._idle_ready = threading.Condition(self._idle_lock)
         self._state_lock = threading.Lock()
         self._closed = False
+        self._keepalive_stop = threading.Event()
+        self._keepalive_thread: Optional[threading.Thread] = None
+        if keepalive_interval_seconds is not None:
+            self._keepalive_thread = threading.Thread(
+                target=self._keepalive_loop,
+                name="ofspectrum-stream-keepalive",
+                daemon=True,
+            )
+            self._keepalive_thread.start()
 
     def __enter__(self) -> "StreamEncodePool":
         return self
@@ -132,6 +143,10 @@ class StreamEncodePool:
             if self._closed:
                 return
             self._closed = True
+        self._keepalive_stop.set()
+        thread = self._keepalive_thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout=1.0)
         with self._idle_ready:
             self._idle_ready.notify_all()
 
@@ -165,6 +180,77 @@ class StreamEncodePool:
                 slot.websocket = None
             finally:
                 slot.lock.release()
+
+    def heartbeat(self, *, timeout: Optional[float] = None) -> bool:
+        """Refresh every pooled stream connection without encoding audio.
+
+        Busy slots are skipped because an in-flight encode already keeps them
+        alive. Dead connections are replaced silently. This method never raises;
+        a ``False`` result means no slot confirmed an ack, but later ``encode()``
+        still uses the existing fail-open reconnect path.
+        """
+        if self.closed:
+            return False
+        deadline = None
+        if timeout is not None:
+            deadline = time.monotonic() + float(timeout)
+        elif self._timeout is not None:
+            deadline = time.monotonic() + float(self._timeout)
+        confirmed = False
+        for slot in self._slots:
+            if self._heartbeat_slot(slot, deadline):
+                confirmed = True
+        return confirmed
+
+    def _keepalive_loop(self) -> None:
+        interval = self._keepalive_interval
+        if interval is None:
+            return
+        while not self._keepalive_stop.wait(timeout=interval):
+            if self.closed:
+                return
+            self.heartbeat(timeout=self._CONNECT_TIMEOUT_SECONDS)
+
+    def _heartbeat_slot(
+        self,
+        slot: _StreamPoolSlot,
+        deadline: Optional[float],
+    ) -> bool:
+        if not slot.lock.acquire(blocking=False):
+            return True
+        try:
+            if self.closed:
+                return False
+            try:
+                return self._heartbeat_once(slot, deadline)
+            except Exception:
+                self._discard_connection(slot)
+                try:
+                    return self._heartbeat_once(slot, deadline)
+                except Exception:
+                    self._discard_connection(slot)
+                    return False
+        finally:
+            slot.lock.release()
+
+    def _heartbeat_once(
+        self,
+        slot: _StreamPoolSlot,
+        deadline: Optional[float],
+    ) -> bool:
+        self._ensure_connection(slot, deadline)
+        websocket = slot.websocket
+        if websocket is None:
+            return False
+        websocket.send(json.dumps({"type": "heartbeat"}))
+        event = self._control_event(self._recv(websocket, deadline))
+        if event.get("type") != "heartbeat_ack":
+            raise OfSpectrumError(
+                message="Streaming pool received an invalid heartbeat response",
+                code="StreamingPoolProtocol",
+            )
+        slot.last_ok_monotonic = time.monotonic()
+        return True
 
     def encode(
         self,
@@ -754,12 +840,19 @@ class AudioResource(BaseResource):
         smooth: bool = True,
         verify_and_reencode: bool = True,
         timeout: Optional[float] = None,
+        keepalive_interval_seconds: Optional[float] = None,
     ) -> StreamEncodePool:
         """Create a thread-safe persistent pool for repeated stream encodes.
 
         Each connection has a stable opaque slot identifier. The pool config is
         fixed at creation time; ``encode()`` accepts file paths, file objects,
         or bytes with the same number of audio channels as the pool.
+
+        ``keepalive_interval_seconds`` sends ``{"type": "heartbeat"}`` on every
+        pooled connection so Neo does not idle-retire the model session. Use a
+        value below the server idle window (default 300s), typically 120. Opening
+        the pool and completing ``admitted`` / ``ready`` warms the connection;
+        do not send dummy audio just to warm up. ``None`` disables keepalive.
         """
         if not token_id:
             raise ValueError("token_id is required")
@@ -783,6 +876,12 @@ class AudioResource(BaseResource):
             isinstance(timeout, bool) or not math.isfinite(timeout) or timeout <= 0.0
         ):
             raise ValueError("timeout must be a finite positive number or None")
+        if keepalive_interval_seconds is not None and (
+            isinstance(keepalive_interval_seconds, bool)
+            or not math.isfinite(keepalive_interval_seconds)
+            or keepalive_interval_seconds <= 0.0
+        ):
+            raise ValueError("keepalive_interval_seconds must be a positive number or None")
 
         pool = StreamEncodePool(
             self,
@@ -794,6 +893,7 @@ class AudioResource(BaseResource):
             smooth=smooth,
             verify_and_reencode=verify_and_reencode,
             timeout=timeout,
+            keepalive_interval_seconds=keepalive_interval_seconds,
         )
         with self._stream_pools_lock:
             self._stream_pools.add(pool)

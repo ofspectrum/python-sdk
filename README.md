@@ -1,12 +1,12 @@
 # OfSpectrum Python SDK
 
 Official Python SDK for the OfSpectrum audio watermarking API. This guide
-describes the SDK `1.2.1` contract.
+describes the SDK `1.3.1` contract.
 
 ## Installation
 
 ```bash
-pip install "ofspectrum==1.2.1"
+pip install "ofspectrum==1.3.1"
 ```
 
 Or install from source:
@@ -294,6 +294,7 @@ with client.audio.open_stream_pool(
     strength=1.0,
     smooth=True,
     verify_and_reencode=True,
+    keepalive_interval_seconds=120,
 ) as pool:
     result = pool.encode(tts_wav_bytes, timeout=120.0)
     result.save("watermarked.wav")
@@ -302,11 +303,21 @@ with client.audio.open_stream_pool(
 Pool configuration is fixed when it is opened. `pool.encode()` accepts a file
 path, file object, or bytes and returns the same `EncodeResult` as
 `stream_encode()`. The input channel count must match `channels`; use the
-default mono configuration for EthoVox output. Before sending an operation, the
-SDK probes an existing pooled connection and replaces it if it is stale. Once
+default mono configuration for EthoVox output. Set
+`keepalive_interval_seconds` below Neo's idle window (300 seconds by default)
+so every pooled connection stays warm without dummy audio. Completing
+`admitted` / `ready` is the warmup. Before sending an operation, the SDK
+probes an existing pooled connection and replaces it if it is stale. Once
 operation input starts, the SDK never replays that operation automatically;
 retry at the application level only when the workflow has an idempotency
 boundary.
+
+Real encode and decode traffic keeps Neo-to-model sessions alive. Heartbeats
+only refresh idle tracking and do not consume encode quota. They cannot skip
+hourly connection max-age rotation (`AUDIO_ENCODE_V2_CONNECTION_MAX_AGE_SECONDS`,
+default 3600s) or the 40-minute persistent WebSocket rotation. For a long-lived
+TTS worker, raise max-age (for example 86400) or accept a reconnect about once
+an hour.
 
 ## Notebook Management
 

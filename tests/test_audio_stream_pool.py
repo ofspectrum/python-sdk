@@ -1,5 +1,6 @@
 import json
 import threading
+import time
 import uuid
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
@@ -50,6 +51,8 @@ class _PoolSocket:
                 with self._condition:
                     self._responses.extend(self._flush_responses.popleft())
                     self._condition.notify_all()
+            elif event_type == "heartbeat":
+                self._queue_response('{"type":"heartbeat_ack"}')
             elif event_type == "close":
                 self._queue_response('{"type":"closed"}')
 
@@ -331,6 +334,92 @@ def test_stream_pool_reconnects_stale_socket_before_sending_next_operation(monke
         for socket in factory.connections
     ] == [1, 1]
     assert factory.connections[0].closed is True
+
+
+def test_stream_pool_heartbeat_keeps_every_slot_alive(monkeypatch):
+    factory = _PoolFactory([_success_scenario(), _success_scenario()])
+    monkeypatch.setattr(websockets.sync.client, "connect", factory)
+    client = OfSpectrum(api_key="test-key")
+    pool = client.audio.open_stream_pool("token-1", connections=2)
+    try:
+        assert pool.heartbeat(timeout=2.0) is True
+        assert len(factory.connections) == 2
+        for socket in factory.connections:
+            types = [
+                json.loads(message).get("type")
+                for message in socket.sent
+                if isinstance(message, str)
+            ]
+            assert "heartbeat" in types
+            assert "config" in types
+    finally:
+        client.close()
+
+
+def test_stream_pool_heartbeat_reconnects_dead_socket_without_raising(monkeypatch):
+    factory = _PoolFactory([_success_scenario(), _success_scenario()])
+    original = factory.__call__
+
+    def connect_with_dead_first(_url, **kwargs):
+        socket = original(_url, **kwargs)
+        if len(factory.connections) == 1:
+            inner_send = socket.send
+
+            def send(value):
+                if isinstance(value, str) and json.loads(value).get("type") == "heartbeat":
+                    raise RuntimeError("socket dead")
+                return inner_send(value)
+
+            socket.send = send
+        return socket
+
+    monkeypatch.setattr(websockets.sync.client, "connect", connect_with_dead_first)
+    client = OfSpectrum(api_key="test-key")
+    pool = client.audio.open_stream_pool("token-1", connections=1)
+    try:
+        assert pool.heartbeat(timeout=2.0) is True
+        assert len(factory.connections) == 2
+        assert any(
+            isinstance(message, str) and json.loads(message).get("type") == "heartbeat"
+            for message in factory.connections[1].sent
+        )
+    finally:
+        client.close()
+
+
+def test_stream_pool_keepalive_thread_heartbeats_all_slots(monkeypatch):
+    factory = _PoolFactory([_success_scenario(), _success_scenario()])
+    monkeypatch.setattr(websockets.sync.client, "connect", factory)
+    client = OfSpectrum(api_key="test-key")
+    pool = client.audio.open_stream_pool(
+        "token-1",
+        connections=2,
+        keepalive_interval_seconds=0.05,
+    )
+    try:
+        deadline = time.monotonic() + 2.0
+        while time.monotonic() < deadline:
+            if len(factory.connections) == 2 and all(
+                any(
+                    isinstance(message, str)
+                    and json.loads(message).get("type") == "heartbeat"
+                    for message in socket.sent
+                )
+                for socket in factory.connections
+            ):
+                break
+            time.sleep(0.02)
+        assert len(factory.connections) == 2
+        assert all(
+            any(
+                isinstance(message, str)
+                and json.loads(message).get("type") == "heartbeat"
+                for message in socket.sent
+            )
+            for socket in factory.connections
+        )
+    finally:
+        client.close()
 
 
 def test_stream_pool_does_not_replay_after_operation_input_starts(monkeypatch):
