@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1 - 2026-08-24
+
+- `open_stream_pool(..., keepalive_interval_seconds=120)` heartbeats every pooled connection so idle Neo model sessions are not retired.
+- `StreamEncodePool.heartbeat()` sends `{"type": "heartbeat"}` on all slots, silently replaces dead connections, and never raises into the encode path.
+- Opening a stream connection through `admitted` / `ready` is the warmup. Do not send dummy audio just to keep a session hot.
+- Neo-to-model sessions stay warm from real encode/decode work. Heartbeats only refresh idle tracking; they do not bill quota.
+
 ## 1.3.0 - 2026-08-23
 
 - `audio.stream_encode()` reuses a process-local persistent stream pool when `interval` is 0, so repeated TTS-style calls do not open a new WebSocket each time.

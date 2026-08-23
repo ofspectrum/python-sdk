@@ -12,7 +12,7 @@ from ofspectrum.exceptions import (
 def test_client_version_headers_match_release():
     client = OfSpectrum(api_key="test-key")
     try:
-        assert client._default_headers()["User-Agent"] == "OfSpectrum-Python-SDK/1.3.0"
+        assert client._default_headers()["User-Agent"] == "OfSpectrum-Python-SDK/1.3.1"
     finally:
         client.close()
 

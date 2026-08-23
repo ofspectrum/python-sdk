@@ -12,8 +12,8 @@ The public SDK repository is:
 https://github.com/ofspectrum/python-sdk
 ```
 
-Customer applications should normally install SDK `1.2.1` with
-`pip install "ofspectrum==1.2.1"`; they should not need the private Neo
+Customer applications should normally install SDK `1.3.1` with
+`pip install "ofspectrum==1.3.1"`; they should not need the private Neo
 monorepo source.
 
 If an agent needs SDK source orientation, use the public SDK repository above. From that repository root, inspect these files first:

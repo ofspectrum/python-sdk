@@ -4,13 +4,13 @@ import ofspectrum
 from ofspectrum import __version__
 
 
-def test_package_versions_are_1_3_0():
+def test_package_versions_are_1_3_1():
     pyproject = (Path(__file__).parents[1] / "pyproject.toml").read_text(
         encoding="utf-8"
     )
 
-    assert __version__ == "1.3.0"
-    assert 'version = "1.3.0"' in pyproject
+    assert __version__ == "1.3.1"
+    assert 'version = "1.3.1"' in pyproject
 
 
 def test_1_2_0_public_models_and_exceptions_are_exported():

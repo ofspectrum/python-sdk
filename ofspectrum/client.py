@@ -104,7 +104,7 @@ class OfSpectrum:
         """Get default request headers"""
         return {
             "Authorization": f"Bearer {self._api_key}",
-            "User-Agent": "OfSpectrum-Python-SDK/1.3.0",
+            "User-Agent": "OfSpectrum-Python-SDK/1.3.1",
             "Accept": "application/json",
         }
 
@@ -236,7 +236,7 @@ class AsyncOfSpectrum:
     def _default_headers(self) -> Dict[str, str]:
         return {
             "Authorization": f"Bearer {self._api_key}",
-            "User-Agent": "OfSpectrum-Python-SDK/1.3.0",
+            "User-Agent": "OfSpectrum-Python-SDK/1.3.1",
             "Accept": "application/json",
         }
 
