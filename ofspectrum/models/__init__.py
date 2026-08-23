@@ -2,10 +2,24 @@
 OfSpectrum SDK Data Models
 """
 
-from .token import AiAuthTag, Token, TokenCreateParams, TokenUpdateParams
-from .notebook import Notebook, NotebookMedia, NotebookCreateParams
-from .audio import EncodeResult, DecodeResult, StreamingEncodeResult
+from .audio import DecodeResult, EncodeResult, StreamingEncodeResult
+from .notebook import Notebook, NotebookCreateParams, NotebookMedia
+from .notebook_version import (
+    NotebookCommitMedia,
+    NotebookCommitResponse,
+    NotebookDesiredMedia,
+    NotebookDesiredState,
+    NotebookEffectiveSettings,
+    NotebookSaveSession,
+    NotebookSaveSessionCancellation,
+    NotebookSaveSessionStatus,
+    NotebookSettingOverrides,
+    NotebookSettingsResponse,
+    NotebookStagedUpload,
+    NotebookStorageAdmission,
+)
 from .quota import Quota, QuotaList
+from .token import AiAuthTag, Token, TokenCreateParams, TokenUpdateParams
 
 __all__ = [
     "Token",
@@ -20,4 +34,16 @@ __all__ = [
     "StreamingEncodeResult",
     "Quota",
     "QuotaList",
+    "NotebookSettingOverrides",
+    "NotebookEffectiveSettings",
+    "NotebookSettingsResponse",
+    "NotebookDesiredMedia",
+    "NotebookDesiredState",
+    "NotebookStorageAdmission",
+    "NotebookSaveSession",
+    "NotebookStagedUpload",
+    "NotebookSaveSessionStatus",
+    "NotebookSaveSessionCancellation",
+    "NotebookCommitMedia",
+    "NotebookCommitResponse",
 ]

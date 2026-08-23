@@ -2,10 +2,11 @@
 Webhooks resource for managing webhook configurations
 """
 
-from typing import List, Optional
 from dataclasses import dataclass
-from .base import BaseResource
+from typing import List, Optional
+
 from ..exceptions import raise_for_error
+from .base import BaseResource
 
 
 @dataclass
