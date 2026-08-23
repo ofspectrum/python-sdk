@@ -9,7 +9,7 @@ Example:
     client = OfSpectrum(api_key="your_api_key")
 
     # Create a token
-    token = client.tokens.create(name="My Token", token_type="pro")
+    token = client.tokens.create(name="My Token")
 
     # Encode watermark
     result = client.audio.encode(
@@ -29,42 +29,58 @@ Example:
     print(f"Remaining: {quota.remaining}/{quota.limit}")
 """
 
-__version__ = "1.1.6"
+__version__ = "1.3.0"
 __author__ = "OfSpectrum"
 
-from .client import OfSpectrum, AsyncOfSpectrum
+from .client import AsyncOfSpectrum, OfSpectrum
 from .exceptions import (
-    OfSpectrumError,
     AuthenticationError,
-    RateLimitError,
+    ConflictError,
+    NetworkError,
+    OfSpectrumError,
+    PaymentRequiredError,
     QuotaExceededError,
+    RateLimitError,
     ResourceNotFoundError,
+    ServiceUnavailableError,
+    TimeoutError,
     ValidationError,
     WatermarkExistsError,
-    TimeoutError,
-    ServiceUnavailableError,
-    NetworkError,
 )
 from .models import (
-    Token,
     AiAuthTag,
-    TokenCreateParams,
-    TokenUpdateParams,
-    Notebook,
-    NotebookMedia,
-    NotebookCreateParams,
-    EncodeResult,
     DecodeResult,
-    StreamingEncodeResult,
+    EncodeResult,
+    Notebook,
+    NotebookCommitMedia,
+    NotebookCommitResponse,
+    NotebookCreateParams,
+    NotebookDesiredMedia,
+    NotebookDesiredState,
+    NotebookEffectiveSettings,
+    NotebookMedia,
+    NotebookSaveSession,
+    NotebookSaveSessionCancellation,
+    NotebookSaveSessionStatus,
+    NotebookSettingOverrides,
+    NotebookSettingsResponse,
+    NotebookStagedUpload,
+    NotebookStorageAdmission,
     Quota,
     QuotaList,
+    StreamingEncodeResult,
+    Token,
+    TokenCreateParams,
+    TokenUpdateParams,
 )
+from .resources.audio import StreamEncodePool
 from .utils import RetryConfig, with_retry
 
 __all__ = [
     # Client
     "OfSpectrum",
     "AsyncOfSpectrum",
+    "StreamEncodePool",
     # Exceptions
     "OfSpectrumError",
     "AuthenticationError",
@@ -76,6 +92,8 @@ __all__ = [
     "TimeoutError",
     "ServiceUnavailableError",
     "NetworkError",
+    "ConflictError",
+    "PaymentRequiredError",
     # Models
     "Token",
     "AiAuthTag",
@@ -89,6 +107,18 @@ __all__ = [
     "StreamingEncodeResult",
     "Quota",
     "QuotaList",
+    "NotebookSettingOverrides",
+    "NotebookEffectiveSettings",
+    "NotebookSettingsResponse",
+    "NotebookDesiredMedia",
+    "NotebookDesiredState",
+    "NotebookStorageAdmission",
+    "NotebookSaveSession",
+    "NotebookStagedUpload",
+    "NotebookSaveSessionStatus",
+    "NotebookSaveSessionCancellation",
+    "NotebookCommitMedia",
+    "NotebookCommitResponse",
     # Utils
     "RetryConfig",
     "with_retry",

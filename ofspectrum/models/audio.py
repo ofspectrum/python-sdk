@@ -18,6 +18,7 @@ class EncodeResult:
     content_type: Optional[str] = None
     expires_in: int = 3600
     audio_bytes: Optional[bytes] = None  # Used for stream mode
+    quality_warning: bool = False
 
     @classmethod
     def from_dict(cls, data: dict) -> "EncodeResult":
@@ -30,6 +31,7 @@ class EncodeResult:
             file_name=data.get("file_name"),
             content_type=data.get("content_type"),
             expires_in=data.get("expires_in", 3600),
+            quality_warning=bool(data.get("quality_warning", False)),
         )
 
     @classmethod
@@ -40,6 +42,7 @@ class EncodeResult:
         token_id: str,
         file_name: str,
         content_type: str,
+        quality_warning: bool = False,
     ) -> "EncodeResult":
         """Create EncodeResult from audio bytes (stream mode)"""
         return cls(
@@ -49,6 +52,7 @@ class EncodeResult:
             token_id=token_id,
             file_name=file_name,
             content_type=content_type,
+            quality_warning=quality_warning,
         )
 
     def save(self, path: str) -> None:
@@ -111,6 +115,7 @@ class StreamingEncodeResult:
     sample_rate: int = 48000
     channels: int = 1
     events: Optional[List[Dict[str, Any]]] = None
+    quality_warning: bool = False
 
     @property
     def audio_duration(self) -> float:

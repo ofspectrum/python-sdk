@@ -2,13 +2,13 @@
 Retry utilities with exponential backoff
 """
 
-import time
 import random
+import time
 from dataclasses import dataclass
-from typing import Callable, TypeVar, Optional, Tuple, Type
 from functools import wraps
+from typing import Callable, Optional, Tuple, Type, TypeVar
 
-from ..exceptions import OfSpectrumError, RateLimitError, ServiceUnavailableError, NetworkError
+from ..exceptions import NetworkError, RateLimitError, ServiceUnavailableError
 
 T = TypeVar("T")
 
