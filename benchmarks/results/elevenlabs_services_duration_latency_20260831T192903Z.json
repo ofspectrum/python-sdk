@@ -1,0 +1,2078 @@
+{
+  "completed_at": "2026-08-31T19:36:51.685891+00:00",
+  "created_at": "2026-08-31T19:29:03.059889+00:00",
+  "methodology": {
+    "added_latency_ms": "OfSpectrum encode latency for the paired audio",
+    "encode_disabled_ms": "complete native ElevenLabs service latency",
+    "encode_enabled_ms": "native latency + OfSpectrum encode latency",
+    "iterations_per_tier": 3,
+    "order": "native service response, then encode the exact same bytes",
+    "retries": 0,
+    "tiers_seconds": [
+      2,
+      5,
+      10,
+      30
+    ]
+  },
+  "output_file": "/Users/dingshenggang/Desktop/python-sdk/benchmarks/results/elevenlabs_services_duration_latency_20260831T192903Z.json",
+  "request": {
+    "output_format": "mp3_44100_128",
+    "tts_model_id": "eleven_multilingual_v2",
+    "voice_id": "JBFqnCBsd6RMkjVDRZzb"
+  },
+  "services": [
+    {
+      "service": "speech_to_speech",
+      "tiers": [
+        {
+          "runs": [
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 2.043,
+                "audio_bytes": 33898,
+                "latency_ms": 1043.22,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 288.6,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 2.043,
+                "audio_bytes": 33898,
+                "latency_ms": 1299.5,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 137.27,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 2.043,
+                "audio_bytes": 33898,
+                "latency_ms": 1048.0,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 128.33,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 2.043,
+              "max": 2.043,
+              "min": 2.043
+            },
+            "added_by_encode": null,
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 1130.24,
+              "max_ms": 1299.5,
+              "min_ms": 1043.22,
+              "p50_ms": 1048.0,
+              "p95_ms": 1274.35
+            },
+            "encode_enabled": null,
+            "failed_pairs": 3,
+            "successful_pairs": 0
+          },
+          "target_seconds": 2
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 1881.22,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.016,
+                "audio_bytes": 81128,
+                "latency_ms": 1244.92,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 81546,
+                "complete_latency_ms": 3126.15,
+                "encode_latency_ms": 1881.22,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 151.11,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 1823.79,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.016,
+                "audio_bytes": 81128,
+                "latency_ms": 1226.28,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 81546,
+                "complete_latency_ms": 3050.07,
+                "encode_latency_ms": 1823.79,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 148.73,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 1879.11,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.016,
+                "audio_bytes": 81128,
+                "latency_ms": 1206.08,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 81546,
+                "complete_latency_ms": 3085.2,
+                "encode_latency_ms": 1879.11,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 155.8,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 5.016,
+              "max": 5.016,
+              "min": 5.016
+            },
+            "added_by_encode": {
+              "average_ms": 1861.37,
+              "max_ms": 1881.22,
+              "min_ms": 1823.79,
+              "p50_ms": 1879.11,
+              "p95_ms": 1881.01
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 1225.76,
+              "max_ms": 1244.92,
+              "min_ms": 1206.08,
+              "p50_ms": 1226.28,
+              "p95_ms": 1243.06
+            },
+            "encode_enabled": {
+              "average_ms": 3087.14,
+              "max_ms": 3126.15,
+              "min_ms": 3050.07,
+              "p50_ms": 3085.2,
+              "p95_ms": 3122.05
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 5
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 1977.96,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.031,
+                "audio_bytes": 161376,
+                "latency_ms": 1660.52,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 161794,
+                "complete_latency_ms": 3638.49,
+                "encode_latency_ms": 1977.96,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 119.12,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 2001.68,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.031,
+                "audio_bytes": 161376,
+                "latency_ms": 1571.71,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 161794,
+                "complete_latency_ms": 3573.39,
+                "encode_latency_ms": 2001.68,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 127.36,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 2033.01,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.031,
+                "audio_bytes": 161376,
+                "latency_ms": 1547.38,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 161794,
+                "complete_latency_ms": 3580.39,
+                "encode_latency_ms": 2033.01,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 131.38,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 10.031,
+              "max": 10.031,
+              "min": 10.031
+            },
+            "added_by_encode": {
+              "average_ms": 2004.22,
+              "max_ms": 2033.01,
+              "min_ms": 1977.96,
+              "p50_ms": 2001.68,
+              "p95_ms": 2029.88
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 1593.2,
+              "max_ms": 1660.52,
+              "min_ms": 1547.38,
+              "p50_ms": 1571.71,
+              "p95_ms": 1651.64
+            },
+            "encode_enabled": {
+              "average_ms": 3597.42,
+              "max_ms": 3638.49,
+              "min_ms": 3573.39,
+              "p50_ms": 3580.39,
+              "p95_ms": 3632.68
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 10
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 2821.57,
+              "encode_disabled": {
+                "actual_audio_seconds": 30.0,
+                "audio_bytes": 481115,
+                "latency_ms": 4537.81,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481115,
+                "complete_latency_ms": 7359.38,
+                "encode_latency_ms": 2821.57,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 62.18,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 2741.37,
+              "encode_disabled": {
+                "actual_audio_seconds": 30.0,
+                "audio_bytes": 481115,
+                "latency_ms": 4436.89,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481115,
+                "complete_latency_ms": 7178.26,
+                "encode_latency_ms": 2741.37,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 61.79,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 2931.28,
+              "encode_disabled": {
+                "actual_audio_seconds": 30.0,
+                "audio_bytes": 481115,
+                "latency_ms": 4633.33,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481115,
+                "complete_latency_ms": 7564.6,
+                "encode_latency_ms": 2931.28,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 63.27,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 30.0,
+              "max": 30.0,
+              "min": 30.0
+            },
+            "added_by_encode": {
+              "average_ms": 2831.41,
+              "max_ms": 2931.28,
+              "min_ms": 2741.37,
+              "p50_ms": 2821.57,
+              "p95_ms": 2920.31
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 4536.01,
+              "max_ms": 4633.33,
+              "min_ms": 4436.89,
+              "p50_ms": 4537.81,
+              "p95_ms": 4623.78
+            },
+            "encode_enabled": {
+              "average_ms": 7367.41,
+              "max_ms": 7564.6,
+              "min_ms": 7178.26,
+              "p50_ms": 7359.38,
+              "p95_ms": 7544.08
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 30
+        }
+      ]
+    },
+    {
+      "service": "sound_effects",
+      "tiers": [
+        {
+          "runs": [
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 2.0,
+                "audio_bytes": 33062,
+                "latency_ms": 1892.34,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 126.2,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 2.0,
+                "audio_bytes": 33062,
+                "latency_ms": 2103.61,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 132.1,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 2.0,
+                "audio_bytes": 33062,
+                "latency_ms": 1827.97,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 125.43,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 2.0,
+              "max": 2.0,
+              "min": 2.0
+            },
+            "added_by_encode": null,
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 1941.31,
+              "max_ms": 2103.61,
+              "min_ms": 1827.97,
+              "p50_ms": 1892.34,
+              "p95_ms": 2082.48
+            },
+            "encode_enabled": null,
+            "failed_pairs": 3,
+            "successful_pairs": 0
+          },
+          "target_seconds": 2
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 2027.82,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.0,
+                "audio_bytes": 81128,
+                "latency_ms": 5581.3,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 81128,
+                "complete_latency_ms": 7609.13,
+                "encode_latency_ms": 2027.82,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 36.33,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 1889.95,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.0,
+                "audio_bytes": 81128,
+                "latency_ms": 1697.07,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 81128,
+                "complete_latency_ms": 3587.02,
+                "encode_latency_ms": 1889.95,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 111.37,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 1819.04,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.0,
+                "audio_bytes": 81128,
+                "latency_ms": 1656.99,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 81128,
+                "complete_latency_ms": 3476.04,
+                "encode_latency_ms": 1819.04,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 109.78,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 5.0,
+              "max": 5.0,
+              "min": 5.0
+            },
+            "added_by_encode": {
+              "average_ms": 1912.27,
+              "max_ms": 2027.82,
+              "min_ms": 1819.04,
+              "p50_ms": 1889.95,
+              "p95_ms": 2014.03
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 2978.45,
+              "max_ms": 5581.3,
+              "min_ms": 1656.99,
+              "p50_ms": 1697.07,
+              "p95_ms": 5192.88
+            },
+            "encode_enabled": {
+              "average_ms": 4890.73,
+              "max_ms": 7609.13,
+              "min_ms": 3476.04,
+              "p50_ms": 3587.02,
+              "p95_ms": 7206.92
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 5
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 2100.68,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.0,
+                "audio_bytes": 160958,
+                "latency_ms": 2924.64,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 160958,
+                "complete_latency_ms": 5025.32,
+                "encode_latency_ms": 2100.68,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 71.83,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 2019.88,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.0,
+                "audio_bytes": 160958,
+                "latency_ms": 2986.2,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 160958,
+                "complete_latency_ms": 5006.08,
+                "encode_latency_ms": 2019.88,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 67.64,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 2035.05,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.0,
+                "audio_bytes": 160958,
+                "latency_ms": 3107.87,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 160958,
+                "complete_latency_ms": 5142.92,
+                "encode_latency_ms": 2035.05,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 65.48,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 10.0,
+              "max": 10.0,
+              "min": 10.0
+            },
+            "added_by_encode": {
+              "average_ms": 2051.87,
+              "max_ms": 2100.68,
+              "min_ms": 2019.88,
+              "p50_ms": 2035.05,
+              "p95_ms": 2094.12
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 3006.24,
+              "max_ms": 3107.87,
+              "min_ms": 2924.64,
+              "p50_ms": 2986.2,
+              "p95_ms": 3095.7
+            },
+            "encode_enabled": {
+              "average_ms": 5058.11,
+              "max_ms": 5142.92,
+              "min_ms": 5006.08,
+              "p50_ms": 5025.32,
+              "p95_ms": 5131.16
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 10
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 3129.52,
+              "encode_disabled": {
+                "actual_audio_seconds": 30.0,
+                "audio_bytes": 481115,
+                "latency_ms": 4118.12,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481115,
+                "complete_latency_ms": 7247.64,
+                "encode_latency_ms": 3129.52,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 75.99,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 3033.33,
+              "encode_disabled": {
+                "actual_audio_seconds": 30.0,
+                "audio_bytes": 481115,
+                "latency_ms": 4428.53,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481115,
+                "complete_latency_ms": 7461.86,
+                "encode_latency_ms": 3033.33,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 68.5,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 3021.38,
+              "encode_disabled": {
+                "actual_audio_seconds": 30.0,
+                "audio_bytes": 481115,
+                "latency_ms": 4087.63,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481115,
+                "complete_latency_ms": 7109.01,
+                "encode_latency_ms": 3021.38,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 73.92,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 30.0,
+              "max": 30.0,
+              "min": 30.0
+            },
+            "added_by_encode": {
+              "average_ms": 3061.41,
+              "max_ms": 3129.52,
+              "min_ms": 3021.38,
+              "p50_ms": 3033.33,
+              "p95_ms": 3119.9
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 4211.43,
+              "max_ms": 4428.53,
+              "min_ms": 4087.63,
+              "p50_ms": 4118.12,
+              "p95_ms": 4397.49
+            },
+            "encode_enabled": {
+              "average_ms": 7272.84,
+              "max_ms": 7461.86,
+              "min_ms": 7109.01,
+              "p50_ms": 7247.64,
+              "p95_ms": 7440.44
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 30
+        }
+      ]
+    },
+    {
+      "service": "text_to_dialogue",
+      "tiers": [
+        {
+          "runs": [
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 2.64,
+                "audio_bytes": 43511,
+                "latency_ms": 1131.24,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 127.18,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 2.72,
+                "audio_bytes": 44765,
+                "latency_ms": 1273.65,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 129.53,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 3.04,
+                "audio_bytes": 49781,
+                "latency_ms": 1205.57,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 192.33,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 2.8,
+              "max": 3.04,
+              "min": 2.64
+            },
+            "added_by_encode": null,
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 1203.49,
+              "max_ms": 1273.65,
+              "min_ms": 1131.24,
+              "p50_ms": 1205.57,
+              "p95_ms": 1266.84
+            },
+            "encode_enabled": null,
+            "failed_pairs": 3,
+            "successful_pairs": 0
+          },
+          "target_seconds": 2
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 1858.78,
+              "encode_disabled": {
+                "actual_audio_seconds": 4.96,
+                "audio_bytes": 80292,
+                "latency_ms": 1824.2,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 80292,
+                "complete_latency_ms": 3682.97,
+                "encode_latency_ms": 1858.78,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 101.9,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 1758.39,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.44,
+                "audio_bytes": 88233,
+                "latency_ms": 2173.76,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 88233,
+                "complete_latency_ms": 3932.16,
+                "encode_latency_ms": 1758.39,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 80.89,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 1775.37,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.36,
+                "audio_bytes": 86979,
+                "latency_ms": 2206.35,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 86979,
+                "complete_latency_ms": 3981.73,
+                "encode_latency_ms": 1775.37,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 80.47,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 5.253,
+              "max": 5.44,
+              "min": 4.96
+            },
+            "added_by_encode": {
+              "average_ms": 1797.51,
+              "max_ms": 1858.78,
+              "min_ms": 1758.39,
+              "p50_ms": 1775.37,
+              "p95_ms": 1850.44
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 2068.1,
+              "max_ms": 2206.35,
+              "min_ms": 1824.2,
+              "p50_ms": 2173.76,
+              "p95_ms": 2203.09
+            },
+            "encode_enabled": {
+              "average_ms": 3865.62,
+              "max_ms": 3981.73,
+              "min_ms": 3682.97,
+              "p50_ms": 3932.16,
+              "p95_ms": 3976.77
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 5
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 1976.1,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.64,
+                "audio_bytes": 171407,
+                "latency_ms": 3665.53,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 171407,
+                "complete_latency_ms": 5641.63,
+                "encode_latency_ms": 1976.1,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 53.91,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 2025.01,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.4,
+                "audio_bytes": 167645,
+                "latency_ms": 3216.89,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 167645,
+                "complete_latency_ms": 5241.9,
+                "encode_latency_ms": 2025.01,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 62.95,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 2033.1,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.64,
+                "audio_bytes": 171407,
+                "latency_ms": 3616.04,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 171407,
+                "complete_latency_ms": 5649.14,
+                "encode_latency_ms": 2033.1,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 56.22,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 10.56,
+              "max": 10.64,
+              "min": 10.4
+            },
+            "added_by_encode": {
+              "average_ms": 2011.4,
+              "max_ms": 2033.1,
+              "min_ms": 1976.1,
+              "p50_ms": 2025.01,
+              "p95_ms": 2032.29
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 3499.49,
+              "max_ms": 3665.53,
+              "min_ms": 3216.89,
+              "p50_ms": 3616.04,
+              "p95_ms": 3660.58
+            },
+            "encode_enabled": {
+              "average_ms": 5510.89,
+              "max_ms": 5649.14,
+              "min_ms": 5241.9,
+              "p50_ms": 5641.63,
+              "p95_ms": 5648.39
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 10
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 3237.93,
+              "encode_disabled": {
+                "actual_audio_seconds": 38.56,
+                "audio_bytes": 618205,
+                "latency_ms": 12642.65,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 618205,
+                "complete_latency_ms": 15880.58,
+                "encode_latency_ms": 3237.93,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 25.61,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 3382.24,
+              "encode_disabled": {
+                "actual_audio_seconds": 37.84,
+                "audio_bytes": 606502,
+                "latency_ms": 12667.67,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 606502,
+                "complete_latency_ms": 16049.92,
+                "encode_latency_ms": 3382.24,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 26.7,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 3303.96,
+              "encode_disabled": {
+                "actual_audio_seconds": 36.64,
+                "audio_bytes": 587276,
+                "latency_ms": 12887.81,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 587276,
+                "complete_latency_ms": 16191.77,
+                "encode_latency_ms": 3303.96,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 25.64,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 37.68,
+              "max": 38.56,
+              "min": 36.64
+            },
+            "added_by_encode": {
+              "average_ms": 3308.04,
+              "max_ms": 3382.24,
+              "min_ms": 3237.93,
+              "p50_ms": 3303.96,
+              "p95_ms": 3374.41
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 12732.71,
+              "max_ms": 12887.81,
+              "min_ms": 12642.65,
+              "p50_ms": 12667.67,
+              "p95_ms": 12865.8
+            },
+            "encode_enabled": {
+              "average_ms": 16040.76,
+              "max_ms": 16191.77,
+              "min_ms": 15880.58,
+              "p50_ms": 16049.92,
+              "p95_ms": 16177.59
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 30
+        }
+      ]
+    },
+    {
+      "service": "audio_isolation",
+      "tiers": [
+        {
+          "runs": [
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "code": null,
+                "elapsed_until_failure_ms": 171.21,
+                "error_type": "ApiError",
+                "reason": "headers: {'date': 'Mon, 31 Aug 2026 19:32:07 GMT', 'server': 'uvicorn', 'content-length': '247', 'content-type': 'application/json', 'vary': 'Accept-Language', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, PATCH, OPTIONS, DELETE, GET, PUT', 'access-control-max-age': '600', 'strict-transport-security': 'max-age=1800;', 'x-trace-id': 'fdc7f96f648e7bdddcd15176a4a75c78', 'x-region': 'us-central1', 'via': '1.1 google', 'alt-svc': 'h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000'}, status_code: 400, body: {'detail': {'type': 'validation_error', 'code': 'audio_too_short', 'message': 'Audio duration is 2.0 seconds, which is below the minimum of 4.6 seconds.', 'status': 'invalid_audio_duration', 'request_id': 'fdc7f96f648e7bdddcd15176a4a75c78', 'param': 'audio'}}",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "encode_enabled": {
+                "reason": "native service request failed",
+                "status": "SKIP"
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "code": null,
+                "elapsed_until_failure_ms": 112.67,
+                "error_type": "ApiError",
+                "reason": "headers: {'date': 'Mon, 31 Aug 2026 19:32:07 GMT', 'server': 'uvicorn', 'content-length': '247', 'content-type': 'application/json', 'vary': 'Accept-Language', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, PATCH, OPTIONS, DELETE, GET, PUT', 'access-control-max-age': '600', 'strict-transport-security': 'max-age=1800;', 'x-trace-id': '5a3b1863b8c1cd63dcd15176a4a75d5a', 'x-region': 'us-central1', 'via': '1.1 google', 'alt-svc': 'h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000'}, status_code: 400, body: {'detail': {'type': 'validation_error', 'code': 'audio_too_short', 'message': 'Audio duration is 2.0 seconds, which is below the minimum of 4.6 seconds.', 'status': 'invalid_audio_duration', 'request_id': '5a3b1863b8c1cd63dcd15176a4a75d5a', 'param': 'audio'}}",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "encode_enabled": {
+                "reason": "native service request failed",
+                "status": "SKIP"
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "code": null,
+                "elapsed_until_failure_ms": 212.79,
+                "error_type": "ApiError",
+                "reason": "headers: {'date': 'Mon, 31 Aug 2026 19:32:07 GMT', 'server': 'uvicorn', 'content-length': '247', 'content-type': 'application/json', 'vary': 'Accept-Language', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, PATCH, OPTIONS, DELETE, GET, PUT', 'access-control-max-age': '600', 'strict-transport-security': 'max-age=1800;', 'x-trace-id': 'b4097f91963b91b0dcd15176a4a75c55', 'x-region': 'us-central1', 'via': '1.1 google', 'alt-svc': 'h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000'}, status_code: 400, body: {'detail': {'type': 'validation_error', 'code': 'audio_too_short', 'message': 'Audio duration is 2.0 seconds, which is below the minimum of 4.6 seconds.', 'status': 'invalid_audio_duration', 'request_id': 'b4097f91963b91b0dcd15176a4a75c55', 'param': 'audio'}}",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "encode_enabled": {
+                "reason": "native service request failed",
+                "status": "SKIP"
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": null,
+            "added_by_encode": null,
+            "attempted_pairs": 3,
+            "encode_disabled": null,
+            "encode_enabled": null,
+            "failed_pairs": 3,
+            "successful_pairs": 0
+          },
+          "target_seconds": 2
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 2086.8,
+              "encode_disabled": {
+                "actual_audio_seconds": 4.992,
+                "audio_bytes": 202754,
+                "latency_ms": 852.21,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 202754,
+                "complete_latency_ms": 2939.02,
+                "encode_latency_ms": 2086.8,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 244.87,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 2155.57,
+              "encode_disabled": {
+                "actual_audio_seconds": 4.992,
+                "audio_bytes": 202754,
+                "latency_ms": 797.08,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 202754,
+                "complete_latency_ms": 2952.65,
+                "encode_latency_ms": 2155.57,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 270.43,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 4.992,
+                "audio_bytes": 202754,
+                "latency_ms": 779.68,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 1469.94,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio input is not supported by Audio Encode V2",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 4.992,
+              "max": 4.992,
+              "min": 4.992
+            },
+            "added_by_encode": {
+              "average_ms": 2121.19,
+              "max_ms": 2155.57,
+              "min_ms": 2086.8,
+              "p50_ms": 2121.19,
+              "p95_ms": 2152.13
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 809.66,
+              "max_ms": 852.21,
+              "min_ms": 779.68,
+              "p50_ms": 797.08,
+              "p95_ms": 846.7
+            },
+            "encode_enabled": {
+              "average_ms": 2945.84,
+              "max_ms": 2952.65,
+              "min_ms": 2939.02,
+              "p50_ms": 2945.84,
+              "p95_ms": 2951.97
+            },
+            "failed_pairs": 1,
+            "successful_pairs": 2
+          },
+          "target_seconds": 5
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 2753.21,
+              "encode_disabled": {
+                "actual_audio_seconds": 9.985,
+                "audio_bytes": 402329,
+                "latency_ms": 1129.25,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 402329,
+                "complete_latency_ms": 3882.47,
+                "encode_latency_ms": 2753.21,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 243.81,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 2622.44,
+              "encode_disabled": {
+                "actual_audio_seconds": 9.985,
+                "audio_bytes": 402329,
+                "latency_ms": 1036.95,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 402329,
+                "complete_latency_ms": 3659.39,
+                "encode_latency_ms": 2622.44,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 252.9,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 2772.87,
+              "encode_disabled": {
+                "actual_audio_seconds": 9.985,
+                "audio_bytes": 402329,
+                "latency_ms": 861.74,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 402329,
+                "complete_latency_ms": 3634.61,
+                "encode_latency_ms": 2772.87,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 321.78,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 9.985,
+              "max": 9.985,
+              "min": 9.985
+            },
+            "added_by_encode": {
+              "average_ms": 2716.17,
+              "max_ms": 2772.87,
+              "min_ms": 2622.44,
+              "p50_ms": 2753.21,
+              "p95_ms": 2770.9
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 1009.31,
+              "max_ms": 1129.25,
+              "min_ms": 861.74,
+              "p50_ms": 1036.95,
+              "p95_ms": 1120.02
+            },
+            "encode_enabled": {
+              "average_ms": 3725.49,
+              "max_ms": 3882.47,
+              "min_ms": 3634.61,
+              "p50_ms": 3659.39,
+              "p95_ms": 3860.16
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 10
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 5069.14,
+              "encode_disabled": {
+                "actual_audio_seconds": 29.977,
+                "audio_bytes": 1201676,
+                "latency_ms": 1631.36,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 1201676,
+                "complete_latency_ms": 6700.5,
+                "encode_latency_ms": 5069.14,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 310.73,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 5159.2,
+              "encode_disabled": {
+                "actual_audio_seconds": 29.977,
+                "audio_bytes": 1201676,
+                "latency_ms": 1954.54,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 1201676,
+                "complete_latency_ms": 7113.74,
+                "encode_latency_ms": 5159.2,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 263.96,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 5033.19,
+              "encode_disabled": {
+                "actual_audio_seconds": 29.977,
+                "audio_bytes": 1201676,
+                "latency_ms": 1674.22,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 1201676,
+                "complete_latency_ms": 6707.41,
+                "encode_latency_ms": 5033.19,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 300.63,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 29.977,
+              "max": 29.977,
+              "min": 29.977
+            },
+            "added_by_encode": {
+              "average_ms": 5087.18,
+              "max_ms": 5159.2,
+              "min_ms": 5033.19,
+              "p50_ms": 5069.14,
+              "p95_ms": 5150.19
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 1753.37,
+              "max_ms": 1954.54,
+              "min_ms": 1631.36,
+              "p50_ms": 1674.22,
+              "p95_ms": 1926.51
+            },
+            "encode_enabled": {
+              "average_ms": 6840.55,
+              "max_ms": 7113.74,
+              "min_ms": 6700.5,
+              "p50_ms": 6707.41,
+              "p95_ms": 7073.11
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 30
+        }
+      ]
+    },
+    {
+      "service": "music_compose",
+      "tiers": [
+        {
+          "runs": [
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "code": null,
+                "elapsed_until_failure_ms": 180.96,
+                "error_type": "UnprocessableEntityError",
+                "reason": "headers: {'date': 'Mon, 31 Aug 2026 19:32:47 GMT', 'server': 'uvicorn', 'content-length': '160', 'content-type': 'application/json', 'vary': 'Accept-Language', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, PATCH, OPTIONS, DELETE, GET, PUT', 'access-control-max-age': '600', 'strict-transport-security': 'max-age=1800;', 'x-trace-id': '3674efbdf8c0bf41754006ef5ad00195', 'x-region': 'us-central1', 'via': '1.1 google', 'alt-svc': 'h3=\":443\"; ma=2592000'}, status_code: 422, body: {'detail': [{'type': 'greater_than_equal', 'loc': ['body', 'music_length_ms'], 'msg': 'Input should be greater than or equal to 3000', 'input': 2000, 'ctx': {'ge': 3000}}]}",
+                "status": "FAIL",
+                "status_code": 422
+              },
+              "encode_enabled": {
+                "reason": "native service request failed",
+                "status": "SKIP"
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "code": null,
+                "elapsed_until_failure_ms": 65.58,
+                "error_type": "UnprocessableEntityError",
+                "reason": "headers: {'date': 'Mon, 31 Aug 2026 19:32:47 GMT', 'server': 'uvicorn', 'content-length': '160', 'content-type': 'application/json', 'vary': 'Accept-Language', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, PATCH, OPTIONS, DELETE, GET, PUT', 'access-control-max-age': '600', 'strict-transport-security': 'max-age=1800;', 'x-trace-id': '16cb0a8ec8b2f6d0754006ef5ad00696', 'x-region': 'us-central1', 'via': '1.1 google', 'alt-svc': 'h3=\":443\"; ma=2592000'}, status_code: 422, body: {'detail': [{'type': 'greater_than_equal', 'loc': ['body', 'music_length_ms'], 'msg': 'Input should be greater than or equal to 3000', 'input': 2000, 'ctx': {'ge': 3000}}]}",
+                "status": "FAIL",
+                "status_code": 422
+              },
+              "encode_enabled": {
+                "reason": "native service request failed",
+                "status": "SKIP"
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "code": null,
+                "elapsed_until_failure_ms": 66.85,
+                "error_type": "UnprocessableEntityError",
+                "reason": "headers: {'date': 'Mon, 31 Aug 2026 19:32:47 GMT', 'server': 'uvicorn', 'content-length': '160', 'content-type': 'application/json', 'vary': 'Accept-Language', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, PATCH, OPTIONS, DELETE, GET, PUT', 'access-control-max-age': '600', 'strict-transport-security': 'max-age=1800;', 'x-trace-id': 'd1dbe997b156995b754006ef5ad00751', 'x-region': 'us-central1', 'via': '1.1 google', 'alt-svc': 'h3=\":443\"; ma=2592000'}, status_code: 422, body: {'detail': [{'type': 'greater_than_equal', 'loc': ['body', 'music_length_ms'], 'msg': 'Input should be greater than or equal to 3000', 'input': 2000, 'ctx': {'ge': 3000}}]}",
+                "status": "FAIL",
+                "status_code": 422
+              },
+              "encode_enabled": {
+                "reason": "native service request failed",
+                "status": "SKIP"
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": null,
+            "added_by_encode": null,
+            "attempted_pairs": 3,
+            "encode_disabled": null,
+            "encode_enabled": null,
+            "failed_pairs": 3,
+            "successful_pairs": 0
+          },
+          "target_seconds": 2
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 1834.36,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.042,
+                "audio_bytes": 80711,
+                "latency_ms": 4319.6,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 81964,
+                "complete_latency_ms": 6153.96,
+                "encode_latency_ms": 1834.36,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 42.47,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 1828.56,
+              "encode_disabled": {
+                "actual_audio_seconds": 6.087,
+                "audio_bytes": 97429,
+                "latency_ms": 4236.66,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 98682,
+                "complete_latency_ms": 6065.22,
+                "encode_latency_ms": 1828.56,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 43.16,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 1851.03,
+              "encode_disabled": {
+                "actual_audio_seconds": 6.087,
+                "audio_bytes": 97429,
+                "latency_ms": 4648.25,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 98682,
+                "complete_latency_ms": 6499.28,
+                "encode_latency_ms": 1851.03,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 39.82,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 5.739,
+              "max": 6.087,
+              "min": 5.042
+            },
+            "added_by_encode": {
+              "average_ms": 1837.98,
+              "max_ms": 1851.03,
+              "min_ms": 1828.56,
+              "p50_ms": 1834.36,
+              "p95_ms": 1849.36
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 4401.5,
+              "max_ms": 4648.25,
+              "min_ms": 4236.66,
+              "p50_ms": 4319.6,
+              "p95_ms": 4615.39
+            },
+            "encode_enabled": {
+              "average_ms": 6239.49,
+              "max_ms": 6499.28,
+              "min_ms": 6065.22,
+              "p50_ms": 6153.96,
+              "p95_ms": 6464.75
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 5
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 2051.38,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.057,
+                "audio_bytes": 160959,
+                "latency_ms": 4531.49,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 162212,
+                "complete_latency_ms": 6582.88,
+                "encode_latency_ms": 2051.38,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 45.27,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 2321.59,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.031,
+                "audio_bytes": 160541,
+                "latency_ms": 7051.35,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 161794,
+                "complete_latency_ms": 9372.95,
+                "encode_latency_ms": 2321.59,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 32.92,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 2180.95,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.057,
+                "audio_bytes": 160959,
+                "latency_ms": 5365.41,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 162212,
+                "complete_latency_ms": 7546.36,
+                "encode_latency_ms": 2180.95,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 40.65,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 10.048,
+              "max": 10.057,
+              "min": 10.031
+            },
+            "added_by_encode": {
+              "average_ms": 2184.64,
+              "max_ms": 2321.59,
+              "min_ms": 2051.38,
+              "p50_ms": 2180.95,
+              "p95_ms": 2307.53
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 5649.42,
+              "max_ms": 7051.35,
+              "min_ms": 4531.49,
+              "p50_ms": 5365.41,
+              "p95_ms": 6882.76
+            },
+            "encode_enabled": {
+              "average_ms": 7834.06,
+              "max_ms": 9372.95,
+              "min_ms": 6582.88,
+              "p50_ms": 7546.36,
+              "p95_ms": 9190.29
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 10
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 3312.25,
+              "encode_disabled": {
+                "actual_audio_seconds": 29.989,
+                "audio_bytes": 479862,
+                "latency_ms": 6949.21,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481115,
+                "complete_latency_ms": 10261.46,
+                "encode_latency_ms": 3312.25,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 47.66,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 3132.18,
+              "encode_disabled": {
+                "actual_audio_seconds": 29.989,
+                "audio_bytes": 479862,
+                "latency_ms": 8923.83,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481115,
+                "complete_latency_ms": 12056.01,
+                "encode_latency_ms": 3132.18,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 35.1,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 3275.32,
+              "encode_disabled": {
+                "actual_audio_seconds": 29.989,
+                "audio_bytes": 479862,
+                "latency_ms": 6464.48,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481115,
+                "complete_latency_ms": 9739.8,
+                "encode_latency_ms": 3275.32,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 50.67,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 29.989,
+              "max": 29.989,
+              "min": 29.989
+            },
+            "added_by_encode": {
+              "average_ms": 3239.92,
+              "max_ms": 3312.25,
+              "min_ms": 3132.18,
+              "p50_ms": 3275.32,
+              "p95_ms": 3308.56
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 7445.84,
+              "max_ms": 8923.83,
+              "min_ms": 6464.48,
+              "p50_ms": 6949.21,
+              "p95_ms": 8726.37
+            },
+            "encode_enabled": {
+              "average_ms": 10685.76,
+              "max_ms": 12056.01,
+              "min_ms": 9739.8,
+              "p50_ms": 10261.46,
+              "p95_ms": 11876.56
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 30
+        }
+      ]
+    },
+    {
+      "service": "video_to_music",
+      "tiers": [
+        {
+          "runs": [
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 3.056,
+                "audio_bytes": 48946,
+                "latency_ms": 9822.6,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 207.09,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 3.056,
+                "audio_bytes": 48946,
+                "latency_ms": 9712.56,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 246.66,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": null,
+              "encode_disabled": {
+                "actual_audio_seconds": 3.056,
+                "audio_bytes": 48946,
+                "latency_ms": 7350.83,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "code": "PROC_4002",
+                "elapsed_until_failure_ms": 301.23,
+                "error_type": "ValidationError",
+                "reason": "[PROC_4002] Audio is too short for this token. Please use a longer audio clip.",
+                "status": "FAIL",
+                "status_code": 400
+              },
+              "increase_percent_vs_disabled": null,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 3.056,
+              "max": 3.056,
+              "min": 3.056
+            },
+            "added_by_encode": null,
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 8962.0,
+              "max_ms": 9822.6,
+              "min_ms": 7350.83,
+              "p50_ms": 9712.56,
+              "p95_ms": 9811.6
+            },
+            "encode_enabled": null,
+            "failed_pairs": 3,
+            "successful_pairs": 0
+          },
+          "target_seconds": 2
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 2143.82,
+              "encode_disabled": {
+                "actual_audio_seconds": 6.087,
+                "audio_bytes": 97429,
+                "latency_ms": 11117.92,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 98682,
+                "complete_latency_ms": 13261.75,
+                "encode_latency_ms": 2143.82,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 19.28,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 2116.24,
+              "encode_disabled": {
+                "actual_audio_seconds": 9.091,
+                "audio_bytes": 145494,
+                "latency_ms": 12247.34,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 146747,
+                "complete_latency_ms": 14363.57,
+                "encode_latency_ms": 2116.24,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 17.28,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 2083.3,
+              "encode_disabled": {
+                "actual_audio_seconds": 5.042,
+                "audio_bytes": 80711,
+                "latency_ms": 8690.5,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 81964,
+                "complete_latency_ms": 10773.79,
+                "encode_latency_ms": 2083.3,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 23.97,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 6.74,
+              "max": 9.091,
+              "min": 5.042
+            },
+            "added_by_encode": {
+              "average_ms": 2114.45,
+              "max_ms": 2143.82,
+              "min_ms": 2083.3,
+              "p50_ms": 2116.24,
+              "p95_ms": 2141.06
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 10685.25,
+              "max_ms": 12247.34,
+              "min_ms": 8690.5,
+              "p50_ms": 11117.92,
+              "p95_ms": 12134.4
+            },
+            "encode_enabled": {
+              "average_ms": 12799.7,
+              "max_ms": 14363.57,
+              "min_ms": 10773.79,
+              "p50_ms": 13261.75,
+              "p95_ms": 14253.39
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 5
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 2175.56,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.057,
+                "audio_bytes": 160959,
+                "latency_ms": 12943.7,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 162212,
+                "complete_latency_ms": 15119.26,
+                "encode_latency_ms": 2175.56,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 16.81,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 2244.05,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.057,
+                "audio_bytes": 160959,
+                "latency_ms": 16027.42,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 162212,
+                "complete_latency_ms": 18271.47,
+                "encode_latency_ms": 2244.05,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 14.0,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 2217.17,
+              "encode_disabled": {
+                "actual_audio_seconds": 10.057,
+                "audio_bytes": 160959,
+                "latency_ms": 14479.25,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 162212,
+                "complete_latency_ms": 16696.42,
+                "encode_latency_ms": 2217.17,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 15.31,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 10.057,
+              "max": 10.057,
+              "min": 10.057
+            },
+            "added_by_encode": {
+              "average_ms": 2212.26,
+              "max_ms": 2244.05,
+              "min_ms": 2175.56,
+              "p50_ms": 2217.17,
+              "p95_ms": 2241.36
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 14483.46,
+              "max_ms": 16027.42,
+              "min_ms": 12943.7,
+              "p50_ms": 14479.25,
+              "p95_ms": 15872.6
+            },
+            "encode_enabled": {
+              "average_ms": 16695.72,
+              "max_ms": 18271.47,
+              "min_ms": 15119.26,
+              "p50_ms": 16696.42,
+              "p95_ms": 18113.97
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 10
+        },
+        {
+          "runs": [
+            {
+              "added_latency_ms": 4200.98,
+              "encode_disabled": {
+                "actual_audio_seconds": 48.065,
+                "audio_bytes": 769089,
+                "latency_ms": 10537.01,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 770342,
+                "complete_latency_ms": 14737.98,
+                "encode_latency_ms": 4200.98,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 39.87,
+              "iteration": 1
+            },
+            {
+              "added_latency_ms": 3290.45,
+              "encode_disabled": {
+                "actual_audio_seconds": 30.041,
+                "audio_bytes": 480698,
+                "latency_ms": 13977.48,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481951,
+                "complete_latency_ms": 17267.94,
+                "encode_latency_ms": 3290.45,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 23.54,
+              "iteration": 2
+            },
+            {
+              "added_latency_ms": 3388.1,
+              "encode_disabled": {
+                "actual_audio_seconds": 30.041,
+                "audio_bytes": 480698,
+                "latency_ms": 17118.43,
+                "status": "PASS"
+              },
+              "encode_enabled": {
+                "audio_bytes": 481951,
+                "complete_latency_ms": 20506.53,
+                "encode_latency_ms": 3388.1,
+                "status": "PASS"
+              },
+              "increase_percent_vs_disabled": 19.79,
+              "iteration": 3
+            }
+          ],
+          "summary": {
+            "actual_audio_seconds": {
+              "average": 36.049,
+              "max": 48.065,
+              "min": 30.041
+            },
+            "added_by_encode": {
+              "average_ms": 3626.51,
+              "max_ms": 4200.98,
+              "min_ms": 3290.45,
+              "p50_ms": 3388.1,
+              "p95_ms": 4119.69
+            },
+            "attempted_pairs": 3,
+            "encode_disabled": {
+              "average_ms": 13877.64,
+              "max_ms": 17118.43,
+              "min_ms": 10537.01,
+              "p50_ms": 13977.48,
+              "p95_ms": 16804.33
+            },
+            "encode_enabled": {
+              "average_ms": 17504.15,
+              "max_ms": 20506.53,
+              "min_ms": 14737.98,
+              "p50_ms": 17267.94,
+              "p95_ms": 20182.67
+            },
+            "failed_pairs": 0,
+            "successful_pairs": 3
+          },
+          "target_seconds": 30
+        }
+      ]
+    }
+  ]
+}
