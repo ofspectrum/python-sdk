@@ -262,6 +262,26 @@ def test_stream_encode_returns_only_after_done(monkeypatch):
     assert result.encoded_pcm == b"encoded"
     assert result.events[-1]["type"] == "done"
     assert result.quality_warning is True
+    assert result.token_id == "token-1"
+
+
+def test_stream_encode_omitted_token_uses_done_event_token_id(monkeypatch):
+    fake = _FakeWebSocket(
+        [
+            b"encoded",
+            '{"type":"done","token_id":"default-token"}',
+        ]
+    )
+    monkeypatch.setattr(websockets.sync.client, "connect", lambda *_args, **_kwargs: fake)
+    client = OfSpectrum(api_key="test-key")
+    try:
+        result = client.audio.stream_encode_pcm([b"pcm"])
+    finally:
+        client.close()
+
+    config = json.loads(fake.sent[0])
+    assert "token_id" not in config["config"]
+    assert result.token_id == "default-token"
 
 
 def test_stream_encode_disables_keepalive_heartbeat_timeout(monkeypatch):

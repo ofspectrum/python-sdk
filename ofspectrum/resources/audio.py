@@ -29,6 +29,17 @@ from ..models.audio import DecodeResult, EncodeResult, StreamingEncodeResult
 from .base import BaseResource
 
 
+def _token_id_from_stream_events(requested: Optional[str], events: Optional[list]) -> str:
+    requested_id = (requested or "").strip()
+    for event in reversed(events or []):
+        if not isinstance(event, dict) or event.get("type") != "done":
+            continue
+        value = event.get("token_id")
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return requested_id
+
+
 def _start_deadline_watchdog(
     websocket: Any,
     deadline: Optional[float],
@@ -388,7 +399,7 @@ class StreamEncodePool:
                 )
             result = StreamingEncodeResult(
                 encoded_pcm=b"".join(encoded_chunks),
-                token_id=self._token_id,
+                token_id=_token_id_from_stream_events(self._token_id, events),
                 sample_rate=self._sample_rate,
                 channels=self._channels,
                 events=events,
@@ -559,18 +570,20 @@ class StreamEncodePool:
                             code="StreamingPoolProtocol",
                         )
 
+                config_payload = {
+                    "sample_rate": self._sample_rate,
+                    "channels": self._channels,
+                    "strength": self._strength,
+                    "smooth": self._smooth,
+                    "verify_and_reencode": self._verify_and_reencode,
+                }
+                if self._token_id:
+                    config_payload["token_id"] = self._token_id
                 websocket.send(
                     json.dumps(
                         {
                             "type": "config",
-                            "config": {
-                                "token_id": self._token_id,
-                                "sample_rate": self._sample_rate,
-                                "channels": self._channels,
-                                "strength": self._strength,
-                                "smooth": self._smooth,
-                                "verify_and_reencode": self._verify_and_reencode,
-                            },
+                            "config": config_payload,
                         }
                     )
                 )
@@ -831,7 +844,7 @@ class AudioResource(BaseResource):
 
     def open_stream_pool(
         self,
-        token_id: str,
+        token_id: Optional[str] = None,
         *,
         connections: int = 2,
         sample_rate: int = CANONICAL_SAMPLE_RATE,
@@ -854,8 +867,9 @@ class AudioResource(BaseResource):
         the pool and completing ``admitted`` / ``ready`` warms the connection;
         do not send dummy audio just to warm up. ``None`` disables keepalive.
         """
-        if not token_id:
-            raise ValueError("token_id is required")
+        if token_id is not None and (not isinstance(token_id, str) or not token_id.strip()):
+            raise ValueError("token_id must be a non-empty string when provided")
+        token_id = token_id.strip() if token_id else ""
         if (
             isinstance(connections, bool)
             or not isinstance(connections, int)
@@ -912,13 +926,13 @@ class AudioResource(BaseResource):
         cls,
         audio: Union[str, Path, BinaryIO],
         *,
-        token_id: str,
+        token_id: Optional[str],
         strength: float,
         interval: Optional[float],
         timeout: float,
     ) -> None:
-        if not token_id:
-            raise ValueError("token_id is required")
+        if token_id is not None and (not isinstance(token_id, str) or not token_id.strip()):
+            raise ValueError("token_id must be a non-empty string when provided")
         if isinstance(strength, bool) or not math.isfinite(strength) or not 0.1 <= strength <= 2.0:
             raise ValueError("strength must be between 0.1 and 2.0")
         if interval is not None and (
@@ -960,7 +974,7 @@ class AudioResource(BaseResource):
     def encode(
         self,
         audio: Union[str, Path, BinaryIO],
-        token_id: str,
+        token_id: Optional[str] = None,
         *,
         strength: float = 1.0,
         smooth: bool = True,
@@ -979,7 +993,7 @@ class AudioResource(BaseResource):
 
         Args:
             audio: Audio file path or file-like object
-            token_id: Watermark token ID to use
+            token_id: Watermark token ID to use. Omit to use the account default token.
             strength: Watermark strength (0.1-2.0, default 1.0)
             smooth: Smoothness control (default True). Same meaning on file encode and streaming encode.
             interval: Optional interval between watermarks. Omit it to use the service default; 0 is explicit.
@@ -1018,7 +1032,6 @@ class AudioResource(BaseResource):
 
         # Prepare form data for the product API.
         form_data = {
-            "token_id": token_id,
             "strength": str(strength),
             "smooth": self._form_bool(smooth, "smooth"),
             "save_file": self._form_bool(save_file, "save_file"),
@@ -1033,6 +1046,8 @@ class AudioResource(BaseResource):
                 save_file=save_file,
             ),
         }
+        if token_id:
+            form_data["token_id"] = token_id
         if interval is not None:
             form_data["interval"] = str(interval)
         if original_filename:
@@ -1109,7 +1124,7 @@ class AudioResource(BaseResource):
         if duration <= 0:
             raise OfSpectrumError(message="Encoding response did not include a positive audio duration")
         returned_token_id = response.headers.get("X-Token-Id", token_id)
-        if returned_token_id != token_id:
+        if token_id and returned_token_id and returned_token_id != token_id:
             raise OfSpectrumError(message="Encoding response token did not match the request")
         content_disp = response.headers.get("Content-Disposition", "")
 
@@ -1205,7 +1220,7 @@ class AudioResource(BaseResource):
     def stream_encode(
         self,
         audio: Union[str, Path, BinaryIO, bytes],
-        token_id: str,
+        token_id: Optional[str] = None,
         *,
         strength: float = 1.0,
         smooth: bool = True,
@@ -1237,8 +1252,9 @@ class AudioResource(BaseResource):
         persistent stream pool instead of opening a new WebSocket each time.
         """
         source = read_audio_bytes(audio)
-        if not token_id:
-            raise ValueError("token_id is required")
+        if token_id is not None and (not isinstance(token_id, str) or not token_id.strip()):
+            raise ValueError("token_id must be a non-empty string when provided")
+        token_id = token_id.strip() if token_id else ""
         if isinstance(strength, bool) or not math.isfinite(strength) or not 0.1 <= strength <= 2.0:
             raise ValueError("strength must be between 0.1 and 2.0")
         if isinstance(interval, bool) or not math.isfinite(interval) or interval < 0.0:
@@ -1262,6 +1278,7 @@ class AudioResource(BaseResource):
 
         pcm, info = decode_canonical_interleaved_pcm(source)
         channel_count = max(1, int(info.channels))
+        resolved_token_id = token_id
         if interval == 0.0:
             pool = self._auto_stream_pool(
                 token_id=token_id,
@@ -1276,6 +1293,7 @@ class AudioResource(BaseResource):
             encoded_pcm = streamed.encoded_pcm
             quality_warning = streamed.quality_warning
             duration = streamed.audio_duration
+            resolved_token_id = streamed.token_id or token_id
         elif channel_count == 1:
             streamed = self.stream_encode_pcm(
                 [pcm],
@@ -1291,6 +1309,7 @@ class AudioResource(BaseResource):
             encoded_pcm = streamed.encoded_pcm
             quality_warning = streamed.quality_warning
             duration = streamed.audio_duration
+            resolved_token_id = streamed.token_id or token_id
         else:
             channel_pcm = split_interleaved_pcm_f32le(pcm, channel_count)
             results = [None] * channel_count
@@ -1320,6 +1339,10 @@ class AudioResource(BaseResource):
             )
             quality_warning = any(item.quality_warning for item in results)
             duration = max(item.audio_duration for item in results)
+            resolved_token_id = next(
+                (item.token_id for item in results if item and item.token_id),
+                token_id,
+            )
         rebuilt = rebuild_encoded_media(encoded_pcm, info)
         duration = int(round(duration))
         if duration <= 0 and info.duration_seconds > 0:
@@ -1327,7 +1350,7 @@ class AudioResource(BaseResource):
         return EncodeResult.from_bytes(
             audio_bytes=rebuilt,
             audio_duration=duration,
-            token_id=token_id,
+            token_id=resolved_token_id,
             file_name=suggested_filename(info),
             content_type=info.content_type,
             quality_warning=quality_warning,
@@ -1336,7 +1359,7 @@ class AudioResource(BaseResource):
     def stream_encode_pcm(
         self,
         pcm_chunks: Iterable[bytes],
-        token_id: str,
+        token_id: Optional[str] = None,
         *,
         sample_rate: int = 48000,
         channels: int = 1,
@@ -1359,8 +1382,9 @@ class AudioResource(BaseResource):
         Yield chunks as they become available so encoding can start before
         the full file is ready.
         """
-        if not token_id:
-            raise ValueError("token_id is required")
+        if token_id is not None and (not isinstance(token_id, str) or not token_id.strip()):
+            raise ValueError("token_id must be a non-empty string when provided")
+        token_id = token_id.strip() if token_id else ""
         if sample_rate <= 0:
             raise ValueError("sample_rate must be positive")
         if channels <= 0 or channels > 8:
@@ -1386,17 +1410,19 @@ class AudioResource(BaseResource):
 
         url = self._websocket_url("/audio/watermark/ws/encode")
         headers = {"Authorization": f"Bearer {self._client._api_key}"}
+        stream_config = {
+            "sample_rate": sample_rate,
+            "channels": channels,
+            "strength": strength,
+            "smooth": smooth,
+            "interval": interval,
+            "verify_and_reencode": verify_and_reencode,
+        }
+        if token_id:
+            stream_config["token_id"] = token_id
         config = {
             "type": "config",
-            "config": {
-                "token_id": token_id,
-                "sample_rate": sample_rate,
-                "channels": channels,
-                "strength": strength,
-                "smooth": smooth,
-                "interval": interval,
-                "verify_and_reencode": verify_and_reencode,
-            },
+            "config": stream_config,
         }
         encoded_chunks = []
         events = []
@@ -1490,7 +1516,7 @@ class AudioResource(BaseResource):
 
         return StreamingEncodeResult(
             encoded_pcm=b"".join(encoded_chunks),
-            token_id=token_id,
+            token_id=_token_id_from_stream_events(token_id, events),
             sample_rate=sample_rate,
             channels=channels,
             events=events,
