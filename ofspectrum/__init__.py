@@ -33,6 +33,7 @@ __version__ = "1.3.1"
 __author__ = "OfSpectrum"
 
 from .client import AsyncOfSpectrum, OfSpectrum
+from .elevenlabs import Ofspectrum, WatermarkController
 from .exceptions import (
     AuthenticationError,
     ConflictError,
@@ -45,6 +46,7 @@ from .exceptions import (
     ServiceUnavailableError,
     TimeoutError,
     ValidationError,
+    WatermarkConfigurationError,
     WatermarkExistsError,
 )
 from .models import (
@@ -79,8 +81,10 @@ from .utils import RetryConfig, with_retry
 __all__ = [
     # Client
     "OfSpectrum",
+    "Ofspectrum",
     "AsyncOfSpectrum",
     "StreamEncodePool",
+    "WatermarkController",
     # Exceptions
     "OfSpectrumError",
     "AuthenticationError",
@@ -89,6 +93,7 @@ __all__ = [
     "ResourceNotFoundError",
     "ValidationError",
     "WatermarkExistsError",
+    "WatermarkConfigurationError",
     "TimeoutError",
     "ServiceUnavailableError",
     "NetworkError",

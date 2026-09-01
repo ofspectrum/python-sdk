@@ -201,6 +201,71 @@ the unpaid requirement.
 
 ## Audio Watermarking
 
+### ElevenLabs transparent wrapper (first phase)
+
+Install the optional ElevenLabs dependency and configure the watermark identity:
+
+```bash
+pip install "ofspectrum[elevenlabs]"
+cp .env.example .env
+```
+
+Set `ELEVENLABS_API_KEY`, `OFSPECTRUM_API_KEY`, and
+`OFSPECTRUM_TOKEN_ID` in `.env`. The local `.env` file is ignored by Git.
+
+Wrap the native synchronous client once; existing resource calls retain the
+ElevenLabs shape:
+
+```python
+from dotenv import load_dotenv
+from elevenlabs.client import ElevenLabs
+from ofspectrum import Ofspectrum
+
+load_dotenv()
+
+client = Ofspectrum(ElevenLabs())
+audio = client.text_to_speech.convert(
+    text="Hello from ElevenLabs",
+    voice_id="JBFqnCBsd6RMkjVDRZzb",
+    model_id="eleven_multilingual_v2",
+)
+```
+
+The first phase watermarks complete-file responses from Text-to-Speech,
+Speech-to-Speech / Voice Changer, Sound Effects, Text-to-Dialogue, Audio
+Isolation, and Music compose. ElevenLabs represents many complete-file calls as
+an `Iterator[bytes]`; the wrapper keeps that interface but emits the encoded
+file after the native iterator is complete. Calls named `.stream(...)` are
+returned untouched. JSON, metadata, timestamp, job ID, and status responses are
+also returned untouched and do not require watermark configuration.
+
+Runtime configuration is available without rebuilding the wrapper:
+
+```python
+client.watermark.config(enabled=False)
+client.watermark.config(
+    enabled=True,
+    token_id="token-uuid",
+    strength=1.0,
+    smooth=True,
+)
+```
+
+For a new ElevenLabs complete-audio method added after this SDK release, opt in
+explicitly with `client.watermark.register_audio_method("resource.method")`.
+The explicit registry prevents unrelated binary downloads from being mistaken
+for audio.
+
+Run the credentialed latency benchmark with the same TTS request for native and
+wrapped calls:
+
+```bash
+python -m benchmarks.elevenlabs_latency --iterations 20 --warmups 2
+```
+
+It reports average, p50, and p95 latency for native ElevenLabs, wrapped
+ElevenLabs, standalone watermark encode, and the paired added request latency.
+
 `client.audio.encode()` is the default OneFile integration: it sends one audio
 file to `POST /audio/watermark/encode` and returns one encoded audio file. Omit
 `interval` to leave the option unset, or pass `0.0` explicitly for continuous

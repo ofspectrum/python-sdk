@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added `Ofspectrum(ElevenLabs(...))`, a transparent synchronous ElevenLabs wrapper that watermarks known complete-audio responses while preserving native streaming, JSON, metadata, job, and status behavior.
+- Added lazy `client.watermark.config(...)` controls, explicit future audio-method registration, and non-persisting OfSpectrum encode defaults.
+- Added a credentialed ElevenLabs TTS latency benchmark reporting average, p50, and p95 for native, wrapped, encode-only, and paired added latency.
+
 ## 1.3.1 - 2026-08-24
 
 - `open_stream_pool(..., keepalive_interval_seconds=120)` heartbeats every pooled connection so idle Neo model sessions are not retired.
