@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Permanent token storage entitlement is 100 MiB for Standard, Pro, and Enterprise. Paid whole-GiB overage blocks are unchanged.
+
 ## 1.3.1 - 2026-08-24
 
 - `open_stream_pool(..., keepalive_interval_seconds=120)` heartbeats every pooled connection so idle Neo model sessions are not retired.
