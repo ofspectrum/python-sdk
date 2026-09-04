@@ -63,14 +63,14 @@ account:
 
 | Token Type | Notebook Contract | Permanent Account Capacity |
 |------------|-------------------|----------------------------|
-| Standard | One public notebook; no new private notebooks (zero) | Permanent 1 GiB |
-| Pro | One public notebook; five private notebooks | Permanent 6 GiB |
-| Enterprise | One public notebook; ten private notebooks | Permanent 11 GiB |
+| Standard | One public notebook; no new private notebooks (zero) | Permanent 100 MiB |
+| Pro | One public notebook; five private notebooks | Permanent 100 MiB |
+| Enterprise | One public notebook; ten private notebooks | Permanent 100 MiB |
 
 Public SDK callers can create Standard and Pro tokens. Enterprise creation is
 Admin-managed. Retiring a token does not remove its permanent capacity, and a
-Standard-to-Pro upgrade replaces that token's 1 GiB entitlement with 6 GiB; it
-does not add them together.
+Standard-to-Pro upgrade replaces the token type; storage stays 100 MiB and
+does not stack.
 
 ```python
 import os
