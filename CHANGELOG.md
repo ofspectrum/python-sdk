@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+- Added `TTS(provider, client).synthesize(...)` and `synthesize_async(...)` as a
+  provider-neutral completed-audio interface for ElevenLabs, Gemini, Google
+  Cloud Text-to-Speech, OpenAI, Azure OpenAI-compatible deployments, and Azure
+  AI Speech. `TTSResult` returns encoded bytes plus normalized format metadata
+  and retains the native provider response. Advanced provider arguments remain
+  available through `provider_options`.
+- Added transparent ElevenLabs, Gemini, Google Cloud Text-to-Speech, OpenAI,
+  and Azure Speech wrappers; Azure OpenAI Speech uses the OpenAI wrapper.
+  Azure Speech covers completed text, SSML, and audio-config synthesis. The
+  wrappers include async Gemini/OpenAI clients and OpenAI Chat Completions
+  audio from models such as `gpt-audio-1.5`. Completed provider audio uses the
+  existing persistent stream pool by default, so repeated calls on one wrapper reuse
+  connections automatically. Raw PCM is returned in its original shape after
+  encoding, and file-only options retain the OneFile path.
+- Added a cross-provider latency benchmark mode that compares the normal file
+  encoder with a prewarmed persistent stream pool on identical TTS output.
+- Permanent token storage entitlement is 100 MiB for Standard, Pro, and Enterprise. Paid whole-GiB overage blocks are unchanged.
+
 ## 1.3.1 - 2026-08-24
 
 - `open_stream_pool(..., keepalive_interval_seconds=120)` heartbeats every pooled connection so idle Neo model sessions are not retired.

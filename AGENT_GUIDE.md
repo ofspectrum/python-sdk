@@ -237,16 +237,16 @@ Current public token types:
 
 | Type | Notebook Contract | Permanent Account Capacity | Use When |
 |------|-------------------|----------------------------|----------|
-| Standard | One public notebook; no new private notebooks (zero) | Permanent 1 GiB | The app needs neither a custom verification key nor a new private notebook. |
-| Pro | One public notebook; five private notebooks | Permanent 6 GiB | The workflow needs a configurable `public_key` or any new private notebook. |
-| Enterprise | One public notebook; ten private notebooks | Permanent 11 GiB | Admin-managed Enterprise workflows. Public SDK callers cannot create this type. |
+| Standard | One public notebook; no new private notebooks (zero) | Permanent 100 MiB | The app needs neither a custom verification key nor a new private notebook. |
+| Pro | One public notebook; five private notebooks | Permanent 100 MiB | The workflow needs a configurable `public_key` or any new private notebook. |
+| Enterprise | One public notebook; ten private notebooks | Permanent 100 MiB | Admin-managed Enterprise workflows. Public SDK callers cannot create this type. |
 
 Recommended behavior:
 
 - Create Standard tokens by default.
 - Create Pro tokens when the customer needs a configurable verification key or any new private notebook.
 - Existing tokens can be upgraded from Standard to Pro, but cannot be downgraded.
-- A Standard-to-Pro upgrade replaces that token's 1 GiB entitlement with 6 GiB; it does not produce 7 GiB.
+- A Standard-to-Pro upgrade replaces the token type; storage entitlement stays 100 MiB and does not stack.
 - Permanent capacity remains with the account after token retirement.
 - A token type upgrade may consume quota or incur a billing charge.
 - Store token IDs in the customer app database.
@@ -513,7 +513,7 @@ Additional constraints:
 - Private notebook credentials must be unique under the same token.
 - Private notebook credentials are optional at the SDK level, but apps that need credential-gated private metadata should explicitly pass `credential_val`.
 - Notebook media is limited to detected image, audio, and video content. Each notebook accepts at most 500 current files, each file may be up to 100 MiB, and notebook text is limited to 10 MiB of UTF-8 data.
-- Media consumes account capacity. Each acquired Standard, Pro, or Enterprise token contributes a permanent 1, 6, or 11 GiB entitlement respectively; available capacity may also include legacy credit and paid whole-GiB blocks.
+- Media consumes account capacity. Each acquired Standard, Pro, or Enterprise token contributes a permanent 100 MiB entitlement; available capacity may also include legacy credit and paid whole-GiB blocks.
 - Standard tokens cannot create new private notebooks. Existing Standard private notebooks are grandfathered and remain editable or deletable, but cannot be replaced after deletion.
 - Pro tokens support five private notebooks, and Enterprise tokens support ten.
 - If a token already has a public notebook, update the existing notebook instead of creating another one.
@@ -913,7 +913,7 @@ Recommended runtime flow:
 - API keys are created in the OfSpectrum dashboard, not through the SDK.
 - Token IDs, notebook IDs, media IDs, and current revisions should be stored in the customer app database.
 - Standard tokens are the safest default for new workflows.
-- Standard, Pro, and Enterprise tokens contribute permanent 1, 6, and 11 GiB account capacity respectively.
+- Standard, Pro, and Enterprise tokens each contribute a permanent 100 MiB account capacity.
 - Pro tokens are needed when the workflow requires a configurable `public_key` or up to five private notebooks; Enterprise creation is Admin-managed.
 - Account defaults and storage charge authorization are configured in the Web Console, not through an API key.
 - A staged save begins one session and reuses its `save_session_id` across all files and the commit.

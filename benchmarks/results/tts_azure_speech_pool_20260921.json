@@ -1,0 +1,250 @@
+{
+  "endpoint": "speak_text",
+  "iterations_per_tier": 3,
+  "methodology": "one native TTS result per run; encode identical audio through the file API and a prewarmed persistent stream pool",
+  "pool": {
+    "connections": 1,
+    "prewarmed_with_heartbeat": true,
+    "warmup_ms_excluded_from_encode": 238.06
+  },
+  "provider": "azure-speech",
+  "request": {
+    "model": "azure-speech",
+    "output_format": "mp3",
+    "voice": "en-US-AvaNeural"
+  },
+  "tiers": [
+    {
+      "actual_audio_seconds": {
+        "average": 5.232,
+        "max": 5.232,
+        "min": 5.232
+      },
+      "file_encode": {
+        "average_ms": 1906.72,
+        "p50_ms": 1811.59,
+        "p95_ms": 2156.3
+      },
+      "file_total": {
+        "average_ms": 2467.0,
+        "p50_ms": 2123.24,
+        "p95_ms": 3114.4
+      },
+      "native_tts": {
+        "average_ms": 560.28,
+        "p50_ms": 339.26,
+        "p95_ms": 960.86
+      },
+      "pooled_encode": {
+        "average_ms": 1256.38,
+        "p50_ms": 1043.28,
+        "p95_ms": 1661.08
+      },
+      "pooled_savings": {
+        "average_ms": 650.35,
+        "p50_ms": 717.87,
+        "p95_ms": 763.26
+      },
+      "pooled_total": {
+        "average_ms": 1816.65,
+        "p50_ms": 1354.93,
+        "p95_ms": 2619.18
+      },
+      "runs": [
+        {
+          "actual_audio_seconds": 5.232,
+          "encode_order": "file,pool",
+          "file_encode_ms": 2194.6,
+          "file_total_ms": 3224.53,
+          "iteration": 1,
+          "native_tts_ms": 1029.93,
+          "pooled_encode_ms": 1729.72,
+          "pooled_savings_ms": 464.88,
+          "pooled_savings_percent": 21.18,
+          "pooled_total_ms": 2759.65
+        },
+        {
+          "actual_audio_seconds": 5.232,
+          "encode_order": "pool,file",
+          "file_encode_ms": 1811.59,
+          "file_total_ms": 2123.24,
+          "iteration": 2,
+          "native_tts_ms": 311.65,
+          "pooled_encode_ms": 1043.28,
+          "pooled_savings_ms": 768.31,
+          "pooled_savings_percent": 42.41,
+          "pooled_total_ms": 1354.93
+        },
+        {
+          "actual_audio_seconds": 5.232,
+          "encode_order": "file,pool",
+          "file_encode_ms": 1713.99,
+          "file_total_ms": 2053.24,
+          "iteration": 3,
+          "native_tts_ms": 339.26,
+          "pooled_encode_ms": 996.12,
+          "pooled_savings_ms": 717.87,
+          "pooled_savings_percent": 41.88,
+          "pooled_total_ms": 1335.38
+        }
+      ],
+      "target_seconds": 5,
+      "text_word_count": 13
+    },
+    {
+      "actual_audio_seconds": {
+        "average": 10.368,
+        "max": 10.368,
+        "min": 10.368
+      },
+      "file_encode": {
+        "average_ms": 1928.97,
+        "p50_ms": 1931.3,
+        "p95_ms": 1947.19
+      },
+      "file_total": {
+        "average_ms": 2363.3,
+        "p50_ms": 2370.85,
+        "p95_ms": 2422.2
+      },
+      "native_tts": {
+        "average_ms": 434.34,
+        "p50_ms": 439.55,
+        "p95_ms": 475.0
+      },
+      "pooled_encode": {
+        "average_ms": 1174.64,
+        "p50_ms": 1173.39,
+        "p95_ms": 1187.45
+      },
+      "pooled_savings": {
+        "average_ms": 754.33,
+        "p50_ms": 759.95,
+        "p95_ms": 768.8
+      },
+      "pooled_total": {
+        "average_ms": 1608.97,
+        "p50_ms": 1601.07,
+        "p95_ms": 1661.26
+      },
+      "runs": [
+        {
+          "actual_audio_seconds": 10.368,
+          "encode_order": "file,pool",
+          "file_encode_ms": 1948.96,
+          "file_total_ms": 2427.9,
+          "iteration": 1,
+          "native_tts_ms": 478.94,
+          "pooled_encode_ms": 1189.01,
+          "pooled_savings_ms": 759.95,
+          "pooled_savings_percent": 38.99,
+          "pooled_total_ms": 1667.95
+        },
+        {
+          "actual_audio_seconds": 10.368,
+          "encode_order": "pool,file",
+          "file_encode_ms": 1931.3,
+          "file_total_ms": 2370.85,
+          "iteration": 2,
+          "native_tts_ms": 439.55,
+          "pooled_encode_ms": 1161.52,
+          "pooled_savings_ms": 769.78,
+          "pooled_savings_percent": 39.86,
+          "pooled_total_ms": 1601.07
+        },
+        {
+          "actual_audio_seconds": 10.368,
+          "encode_order": "file,pool",
+          "file_encode_ms": 1906.65,
+          "file_total_ms": 2291.16,
+          "iteration": 3,
+          "native_tts_ms": 384.51,
+          "pooled_encode_ms": 1173.39,
+          "pooled_savings_ms": 733.26,
+          "pooled_savings_percent": 38.46,
+          "pooled_total_ms": 1557.9
+        }
+      ],
+      "target_seconds": 10,
+      "text_word_count": 22
+    },
+    {
+      "actual_audio_seconds": {
+        "average": 30.648,
+        "max": 30.648,
+        "min": 30.648
+      },
+      "file_encode": {
+        "average_ms": 2702.95,
+        "p50_ms": 2643.33,
+        "p95_ms": 2836.01
+      },
+      "file_total": {
+        "average_ms": 3239.97,
+        "p50_ms": 3239.29,
+        "p95_ms": 3342.71
+      },
+      "native_tts": {
+        "average_ms": 537.01,
+        "p50_ms": 518.3,
+        "p95_ms": 588.19
+      },
+      "pooled_encode": {
+        "average_ms": 2918.05,
+        "p50_ms": 2975.89,
+        "p95_ms": 2986.35
+      },
+      "pooled_savings": {
+        "average_ms": -215.09,
+        "p50_ms": -332.55,
+        "p95_ms": 26.75
+      },
+      "pooled_total": {
+        "average_ms": 3455.06,
+        "p50_ms": 3505.81,
+        "p95_ms": 3565.24
+      },
+      "runs": [
+        {
+          "actual_audio_seconds": 30.648,
+          "encode_order": "file,pool",
+          "file_encode_ms": 2608.11,
+          "file_total_ms": 3126.41,
+          "iteration": 1,
+          "native_tts_ms": 518.3,
+          "pooled_encode_ms": 2987.51,
+          "pooled_savings_ms": -379.4,
+          "pooled_savings_percent": -14.55,
+          "pooled_total_ms": 3505.81
+        },
+        {
+          "actual_audio_seconds": 30.648,
+          "encode_order": "pool,file",
+          "file_encode_ms": 2857.42,
+          "file_total_ms": 3354.2,
+          "iteration": 2,
+          "native_tts_ms": 496.79,
+          "pooled_encode_ms": 2790.75,
+          "pooled_savings_ms": 66.67,
+          "pooled_savings_percent": 2.33,
+          "pooled_total_ms": 3287.53
+        },
+        {
+          "actual_audio_seconds": 30.648,
+          "encode_order": "file,pool",
+          "file_encode_ms": 2643.33,
+          "file_total_ms": 3239.29,
+          "iteration": 3,
+          "native_tts_ms": 595.96,
+          "pooled_encode_ms": 2975.89,
+          "pooled_savings_ms": -332.55,
+          "pooled_savings_percent": -12.58,
+          "pooled_total_ms": 3571.85
+        }
+      ],
+      "target_seconds": 30,
+      "text_word_count": 75
+    }
+  ],
+  "warmups_per_tier": 0
+}
