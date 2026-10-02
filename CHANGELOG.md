@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+## 1.4.0 - 2026-10-02
+
+- Async TTS calls consume synchronous complete-audio iterators and perform
+  blocking completion work outside the caller's event loop.
+- Replacing controller-owned watermark clients preserves in-flight encode
+  snapshots and retires old clients only after their last active encode.
+  Caller-owned clients remain caller-owned; explicit close still aborts active
+  owned clients.
+- Concurrent readers of one Azure synthesis future share one watermark encode
+  and a cached terminal outcome. Separate synthesis futures remain concurrent.
+
+- Added `TTS(provider, client).synthesize(...)` and `synthesize_async(...)` as a
+  provider-neutral completed-audio interface for ElevenLabs, Gemini, Google
+  Cloud Text-to-Speech, OpenAI, Azure OpenAI-compatible deployments, and Azure
+  AI Speech. `TTSResult` returns encoded bytes plus normalized format metadata
+  and retains the native provider response. Advanced provider arguments remain
+  available through `provider_options`.
+- Added transparent ElevenLabs, Gemini, Google Cloud Text-to-Speech, OpenAI,
+  and Azure Speech wrappers; Azure OpenAI Speech uses the OpenAI wrapper.
+  Azure Speech covers completed text, SSML, and audio-config synthesis. The
+  wrappers include async Gemini/OpenAI clients and OpenAI Chat Completions
+  audio from models such as `gpt-audio-1.5`. Completed provider audio uses the
+  existing persistent stream pool by default, so repeated calls on one wrapper reuse
+  connections automatically. Raw PCM is returned in its original shape after
+  encoding, and file-only options retain the OneFile path.
+- Added a cross-provider latency benchmark mode that compares the normal file
+  encoder with a prewarmed persistent stream pool on identical TTS output.
+- Permanent token storage entitlement is 100 MiB for Standard, Pro, and Enterprise. Paid whole-GiB overage blocks are unchanged.
+
 ## 1.3.1 - 2026-08-24
 
 - `open_stream_pool(..., keepalive_interval_seconds=120)` heartbeats every pooled connection so idle Neo model sessions are not retired.

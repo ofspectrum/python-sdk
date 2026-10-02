@@ -29,10 +29,11 @@ Example:
     print(f"Remaining: {quota.remaining}/{quota.limit}")
 """
 
-__version__ = "1.3.1"
+__version__ = "1.4.0"
 __author__ = "OfSpectrum"
 
 from .client import AsyncOfSpectrum, OfSpectrum
+from .elevenlabs import Ofspectrum, WatermarkController
 from .exceptions import (
     AuthenticationError,
     ConflictError,
@@ -45,8 +46,11 @@ from .exceptions import (
     ServiceUnavailableError,
     TimeoutError,
     ValidationError,
+    WatermarkConfigurationError,
     WatermarkExistsError,
 )
+from .google import Gemini, GoogleCloudTTS
+from .microsoft import AzureSpeechTTS
 from .models import (
     AiAuthTag,
     DecodeResult,
@@ -73,14 +77,24 @@ from .models import (
     TokenCreateParams,
     TokenUpdateParams,
 )
+from .openai import OpenAITTS
 from .resources.audio import StreamEncodePool
+from .tts import TTS, TTSResult
 from .utils import RetryConfig, with_retry
 
 __all__ = [
     # Client
     "OfSpectrum",
+    "Ofspectrum",
     "AsyncOfSpectrum",
     "StreamEncodePool",
+    "WatermarkController",
+    "Gemini",
+    "GoogleCloudTTS",
+    "AzureSpeechTTS",
+    "OpenAITTS",
+    "TTS",
+    "TTSResult",
     # Exceptions
     "OfSpectrumError",
     "AuthenticationError",
@@ -88,6 +102,7 @@ __all__ = [
     "QuotaExceededError",
     "ResourceNotFoundError",
     "ValidationError",
+    "WatermarkConfigurationError",
     "WatermarkExistsError",
     "TimeoutError",
     "ServiceUnavailableError",
