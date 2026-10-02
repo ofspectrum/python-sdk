@@ -9,6 +9,7 @@ import pytest
 import websockets.sync.client
 
 from ofspectrum import OfSpectrum, StreamEncodePool
+from ofspectrum.elevenlabs import WatermarkController
 from ofspectrum.exceptions import OfSpectrumError
 from ofspectrum.media import AudioMediaInfo
 
@@ -229,6 +230,49 @@ def test_stream_encode_reuses_auto_pool_connections(monkeypatch):
         client.close()
 
 
+def test_tts_controller_reuses_the_audio_resource_auto_pool(monkeypatch):
+    factory = _PoolFactory([_success_scenario(operations=2)])
+    monkeypatch.setattr(websockets.sync.client, "connect", factory)
+    monkeypatch.setattr(
+        "ofspectrum.resources.audio.rebuild_encoded_media",
+        lambda pcm, _info: b"RIFF" + pcm[:12],
+    )
+
+    def fake_decode(_source):
+        return b"\x00\x00\x00\x00", AudioMediaInfo(
+            format_name="wav",
+            codec_name="pcm_s16le",
+            sample_rate=48000,
+            channels=1,
+            duration_seconds=2.7,
+            extension="wav",
+            content_type="audio/wav",
+        )
+
+    monkeypatch.setattr(
+        "ofspectrum.resources.audio.decode_canonical_interleaved_pcm",
+        fake_decode,
+    )
+    monkeypatch.setattr(
+        "ofspectrum.resources.audio.read_audio_bytes",
+        lambda audio: audio.read() if hasattr(audio, "read") else audio,
+    )
+    client = OfSpectrum(api_key="test-key")
+    controller = WatermarkController(client=client, token_id="token-1")
+    try:
+        first = controller.encode_bytes(b"RIFF" + b"\x00" * 12, filename="tts.wav")
+        second = controller.encode_bytes(b"RIFF" + b"\x00" * 12, filename="tts.wav")
+    finally:
+        client.close()
+
+    assert first.startswith(b"RIFF")
+    assert second.startswith(b"RIFF")
+    assert len(factory.connections) == 1
+    assert sum(
+        isinstance(message, bytes) for message in factory.connections[0].sent
+    ) == 2
+
+
 def test_stream_pool_skips_recent_health_probe(monkeypatch):
     factory = _PoolFactory([_success_scenario(operations=2, ping_ok=False)])
     monkeypatch.setattr(websockets.sync.client, "connect", factory)
@@ -391,7 +435,7 @@ def test_stream_pool_keepalive_thread_heartbeats_all_slots(monkeypatch):
     factory = _PoolFactory([_success_scenario(), _success_scenario()])
     monkeypatch.setattr(websockets.sync.client, "connect", factory)
     client = OfSpectrum(api_key="test-key")
-    pool = client.audio.open_stream_pool(
+    _pool = client.audio.open_stream_pool(
         "token-1",
         connections=2,
         keepalive_interval_seconds=0.05,
