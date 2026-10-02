@@ -117,6 +117,14 @@ class ValidationError(OfSpectrumError):
         self.field = field
 
 
+class WatermarkConfigurationError(OfSpectrumError):
+    """Raised when an intercepted audio call has incomplete configuration."""
+
+    def __init__(self, message: str = "Watermark configuration is incomplete", **kwargs):
+        kwargs.setdefault("code", "WatermarkConfigurationError")
+        super().__init__(message, **kwargs)
+
+
 class WatermarkExistsError(OfSpectrumError):
     """Raised when trying to encode a watermark on already watermarked audio"""
 

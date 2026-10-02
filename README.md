@@ -201,6 +201,295 @@ the unpaid requirement.
 
 ## Audio Watermarking
 
+See [TTS Encode](TTS_ENCODE.md) for the standalone guide to the unified TTS
+interface, provider adapters, watermark connection pooling, and latency tests.
+
+### Unified text-to-speech interface
+
+Use `TTS` when application code should call every provider through one method.
+The native provider client still owns authentication and network behavior. The
+adapter maps the common request to the provider SDK, reuses the existing
+provider wrapper for watermark encoding, and returns a `TTSResult` containing
+the encoded bytes:
+
+```python
+from openai import OpenAI
+from ofspectrum import TTS
+
+with TTS("openai", OpenAI()) as tts:
+    result = tts.synthesize(
+        "Hello from one common interface",
+        model="gpt-4o-mini-tts",
+        voice="alloy",
+        output_format="mp3",
+    )
+    result.save("watermarked.mp3")
+
+encoded_audio = result.audio
+native_response = result.provider_response
+```
+
+The constructor accepts these provider IDs:
+
+| Provider ID | Native client | Common mapping |
+|-------------|---------------|----------------|
+| `elevenlabs` | `ElevenLabs` | `synthesize()` → `text_to_speech.convert`; `voice` is required |
+| `gemini` | `google.genai.Client` | Gemini 3.1 defaults to `interactions.create`; Gemini 2.5 defaults to `models.generate_content` |
+| `google-cloud-tts` | `TextToSpeechClient` | Builds input, voice, and audio configuration for `synthesize_speech` |
+| `openai` | `OpenAI` or `AsyncOpenAI` | Uses `audio.speech.create`, or Chat Completions for `gpt-audio-*` models |
+| `azure-openai` | `AzureOpenAI` | Uses a named Azure deployment that exposes a compatible Speech endpoint; live Azure availability remains deployment-dependent |
+| `azure-speech` | `SpeechSynthesizer` | Uses text synthesis, or SSML when a per-call `voice` is supplied |
+
+All providers use the same call shape and result type:
+
+```python
+result = tts.synthesize(
+    text,
+    model=None,
+    voice=None,
+    output_format=None,
+    language_code=None,
+    endpoint=None,
+    provider_options=None,
+)
+```
+
+`provider_options` is the escape hatch for native endpoint parameters such as
+OpenAI `speed` or a custom Gemini generation configuration. Explicit common
+arguments supply defaults; values present in `provider_options` are retained.
+`result.audio` is always completed, watermarked audio. `result.output_format`,
+`result.mime_type`, `result.model`, and `result.voice` describe the normalized
+result, while `result.provider_response` preserves the provider response.
+Providers do not expose identical models or codecs. The adapter validates a
+requested format where the native API provides that control; Gemini reports
+the MIME type it actually returned, and Azure AI Speech output format remains
+configured on `SpeechConfig` before constructing its synthesizer.
+
+Use `await tts.synthesize_async(...)` with asynchronous provider clients. Keep
+one `TTS` instance for repeated calls so its default `transport="pool"`
+connection is reused, and close it with a sync or async context manager.
+
+The unified interface covers the common completed-audio workflow. Use the
+transparent wrappers below when an application needs the full native provider
+surface or a provider operation outside `synthesize()`.
+
+### Text-to-speech provider wrappers
+
+Install the provider you use, copy `.env.example` to `.env`, fill in its API key
+and `OFSPECTRUM_API_KEY` / `OFSPECTRUM_TOKEN_ID`, then load the environment before
+constructing the native provider client. The wrappers accept native synchronous
+or asynchronous clients and preserve their call arguments and completed response
+shape:
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+
+# ElevenLabs: pip install "ofspectrum[elevenlabs]"
+from elevenlabs.client import ElevenLabs
+from ofspectrum import Ofspectrum
+elevenlabs = Ofspectrum(ElevenLabs())
+audio_chunks = elevenlabs.text_to_speech.convert(
+    text="Hello", voice_id="JBFqnCBsd6RMkjVDRZzb", model_id="eleven_multilingual_v2"
+)
+
+# Gemini: pip install "ofspectrum[gemini]"
+from google import genai
+from ofspectrum import Gemini
+gemini = Gemini(genai.Client())  # GEMINI_API_KEY
+response = gemini.interactions.create(
+    model="gemini-3.1-flash-tts-preview",
+    input="Say cheerfully: Hello!",
+    response_format={"type": "audio"},
+    generation_config={"speech_config": [{"voice": "Kore"}]},
+)
+pcm_base64 = response.output_audio.data
+
+# Google Cloud TTS: pip install "ofspectrum[google-cloud-tts]"
+from google.cloud import texttospeech
+from ofspectrum import GoogleCloudTTS
+cloud = GoogleCloudTTS(texttospeech.TextToSpeechClient())  # Application Default Credentials
+response = cloud.synthesize_speech(
+    input=texttospeech.SynthesisInput(text="Hello"),
+    voice=texttospeech.VoiceSelectionParams(language_code="en-US"),
+    audio_config=texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3),
+)
+mp3 = response.audio_content
+
+# OpenAI: pip install "ofspectrum[openai-tts]"
+from openai import OpenAI
+from ofspectrum import OpenAITTS
+openai = OpenAITTS(OpenAI())  # OPENAI_API_KEY
+speech = openai.audio.speech.create(model="gpt-4o-mini-tts", voice="alloy", input="Hello")
+speech.write_to_file("hello.mp3")
+
+# OpenAI Chat Completions audio: gpt-audio-1.5
+completion = openai.chat.completions.create(
+    model="gpt-audio-1.5",
+    messages=[{"role": "user", "content": "Say hello"}],
+    modalities=["text", "audio"],
+    audio={"voice": "alloy", "format": "wav"},
+)
+wav_base64 = completion.choices[0].message.audio.data
+
+# Azure AI Speech: pip install "ofspectrum[azure-speech]"
+import os
+import azure.cognitiveservices.speech as speechsdk
+from ofspectrum import AzureSpeechTTS
+
+speech_config = speechsdk.SpeechConfig(
+    subscription=os.environ["AZURE_SPEECH_KEY"],
+    region=os.environ["AZURE_SPEECH_REGION"],
+)
+speech_config.speech_synthesis_voice_name = "en-US-AvaNeural"
+speech_config.set_speech_synthesis_output_format(
+    speechsdk.SpeechSynthesisOutputFormat.Audio24Khz96KBitRateMonoMp3
+)
+azure = AzureSpeechTTS(
+    speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=None)
+)
+azure_mp3 = azure.speak_text_async("Hello").get().audio_data
+
+# Azure OpenAI Speech: pip install "ofspectrum[openai-tts]"
+from openai import AzureOpenAI
+azure_openai = OpenAITTS(AzureOpenAI(
+    api_key=os.environ["AZURE_OPENAI_API_KEY"],
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+))
+azure_speech = azure_openai.audio.speech.create(
+    model=os.environ["AZURE_OPENAI_TTS_DEPLOYMENT"], voice="alloy", input="Hello"
+)
+azure_speech.write_to_file("azure-openai-hello.mp3")
+```
+
+Gemini also wraps the legacy `models.generate_content` audio response, including
+Gemini 2.5 Flash/Pro TTS, and the corresponding `client.aio` methods. Returned
+Gemini MIME metadata controls encoding for L16/PCM, MP3, OGG Opus, WAV, A-law,
+μ-law, and other inline audio containers. Cloud TTS supports complete
+`synthesize_speech` outputs in LINEAR16, MP3, OGG_OPUS, MULAW, ALAW, M4A, and
+headerless PCM (with an explicit `sample_rate_hertz`). OpenAI
+supports `gpt-4o-mini-tts`, its dated snapshots, `tts-1`, and `tts-1-hd` through
+the Speech endpoint. Chat Completions audio supports MP3, Opus, AAC, FLAC, WAV,
+and PCM16. Raw PCM is temporarily wrapped as WAV for watermark encoding and
+returned as raw PCM. Native streaming methods remain unchanged.
+Azure Speech wraps completed `speak_text`, `speak_ssml`, and `speak` calls and
+their `*_async(...).get()` forms, including its neural and OpenAI voices.
+Returned `SpeechSynthesisResult.audio_data` holds the encoded bytes; use
+`audio_config=None` for in-memory results. A configured Azure output sink may
+receive unencoded audio before the wrapper sees the result. Azure's
+`AudioDataStream(result)` also reads its native synthesis handle, so read or
+save `result.audio_data` when you need the watermarked audio. Azure OpenAI Speech
+uses the existing `OpenAITTS` wrapper with an `AzureOpenAI` client and the name
+of your deployed TTS model. Azure Speech streaming `start_speaking*` methods
+remain native.
+If your Speech resource requires its own endpoint, set
+`AZURE_SPEECH_ENDPOINT` to the URL from Azure's “Keys and Endpoint” page; the
+benchmark uses that URL in place of `AZURE_SPEECH_REGION`.
+
+The same wrapper works with asynchronous clients. Encoding runs outside the
+event loop after the provider response completes:
+
+```python
+from openai import AsyncOpenAI
+from ofspectrum import OpenAITTS
+
+async with OpenAITTS(AsyncOpenAI()) as openai:
+    completion = await openai.chat.completions.create(
+        model="gpt-audio-1.5",
+        messages=[{"role": "user", "content": "Say hello"}],
+        modalities=["text", "audio"],
+        audio={"voice": "alloy", "format": "mp3"},
+    )
+```
+
+`GOOGLE_CLOUD_TTS_API_KEY` is an optional placeholder for Cloud TTS clients
+constructed with `client_options={"api_key": ...}`; Google recommends
+Application Default Credentials for its Python client. Each wrapper exposes
+`client.watermark.config(...)` and `client.watermark.register_audio_method(...)`
+like the ElevenLabs integration. Completed audio uses the SDK's persistent
+stream pool by default. The first completed-audio call opens a connection
+lazily; later calls on the same wrapper reuse the matching connection pool.
+Pools are keyed by token, channel count, strength, smoothness, and verification
+settings, are safe for concurrent calls, and close with the wrapper's internally
+owned OfSpectrum client.
+
+No provider call changes are required. Use a context manager or call `close()`
+when the wrapper is no longer needed:
+
+```python
+with OpenAITTS(OpenAI()) as openai:
+    first = openai.audio.speech.create(
+        model="gpt-4o-mini-tts", voice="alloy", input="First message"
+    )
+    second = openai.audio.speech.create(
+        model="gpt-4o-mini-tts", voice="alloy", input="Second message"
+    )  # reuses the persistent pool connection
+```
+
+Set `transport="file"` on the wrapper, or call
+`client.watermark.config(transport="file")`, to force the OneFile endpoint.
+An explicit nonzero `interval`, `check_watermark=True`, and raw A-law/μ-law
+outputs also use the file endpoint because those options do not fit the pooled
+stream protocol. Both transports remain non-persisting inside provider wrappers.
+
+To compare latency from this SDK checkout, run the shared benchmark after
+filling `.env` and installing the relevant provider extra:
+
+```bash
+python -m benchmarks.tts_latency --provider elevenlabs --iterations 20
+python -m benchmarks.tts_latency --provider gemini --model gemini-3.1-flash-tts-preview --iterations 20
+python -m benchmarks.tts_latency --provider gemini --model gemini-2.5-flash-preview-tts --iterations 20
+python -m benchmarks.tts_latency --provider gemini --gemini-endpoint interactions --iterations 20
+python -m benchmarks.tts_latency --provider google-cloud-tts --iterations 20
+python -m benchmarks.tts_latency --provider openai --model gpt-4o-mini-tts --iterations 20
+python -m benchmarks.tts_latency --provider openai --openai-endpoint chat --model gpt-audio-1.5 --iterations 20
+python -m benchmarks.tts_latency --provider azure-speech --iterations 20
+python -m benchmarks.tts_latency --provider azure-openai --iterations 20
+```
+
+The benchmark reports native TTS, OneFile encode-only time on those exact native
+audio bytes, their paired total, and a separately measured wrapped end-to-end
+call using the wrapper's default pool transport.
+It alternates native/wrapped order and uses two provider calls plus two watermark
+encodes per iteration, so it consumes live quota. Cloud TTS uses Application
+Default Credentials unless `GOOGLE_CLOUD_TTS_API_KEY` is set.
+
+For the paired 5-, 10-, and 30-second text tiers, add `--duration-tiers`:
+
+```bash
+python -m benchmarks.tts_latency --provider elevenlabs --duration-tiers
+python -m benchmarks.tts_latency --provider gemini --model gemini-3.1-flash-tts-preview --duration-tiers
+python -m benchmarks.tts_latency --provider google-cloud-tts --duration-tiers
+python -m benchmarks.tts_latency --provider openai --model gpt-4o-mini-tts --duration-tiers
+python -m benchmarks.tts_latency --provider openai --openai-endpoint chat --model gpt-audio-1.5 --duration-tiers
+python -m benchmarks.tts_latency --provider azure-speech --duration-tiers
+python -m benchmarks.tts_latency --provider azure-openai --duration-tiers
+```
+
+Tier mode defaults to three consecutive paired runs per tier. Each run makes
+one native TTS call, encodes the exact returned audio, and reports native,
+encode-only, and combined latency plus actual audio duration. The target tiers
+are approximate because providers control speaking rate. Use `--iterations`
+and `--warmups` to override the tier defaults of 3 and 0.
+
+Use `--compare-pool` to compare the normal file encode endpoint with the SDK's
+persistent stream pool on identical provider audio:
+
+```bash
+python -m benchmarks.tts_latency --provider gemini --model gemini-3.1-flash-tts-preview --compare-pool
+python -m benchmarks.tts_latency --provider openai --model gpt-4o-mini-tts --compare-pool
+python -m benchmarks.tts_latency --provider azure-speech --compare-pool
+python -m benchmarks.tts_latency --provider azure-openai --compare-pool
+```
+
+This mode opens one pool connection and prewarms it with `heartbeat()` before
+timing. Connection warmup is reported separately and excluded from encode
+latency. Every run generates one native TTS result, then alternates the order
+of normal file encode and pooled encode using that exact source audio. It
+reports both encode times, native-plus-encode totals, and pool savings. The
+default is three runs at each 5-, 10-, and 30-second target tier.
+
 `client.audio.encode()` is the default OneFile integration: it sends one audio
 file to `POST /audio/watermark/encode` and returns one encoded audio file. Omit
 `interval` to leave the option unset, or pass `0.0` explicitly for continuous

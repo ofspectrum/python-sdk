@@ -1,0 +1,155 @@
+{
+  "endpoint": "models.generate_content",
+  "iterations_per_tier": 3,
+  "methodology": "native TTS, then encode the exact same audio bytes",
+  "provider": "gemini",
+  "request": {
+    "model": "gemini-3.1-flash-tts-preview",
+    "output_format": "pcm_24000_mono",
+    "voice": "Kore"
+  },
+  "tiers": [
+    {
+      "actual_audio_seconds": {
+        "average": 5.88,
+        "max": 6.08,
+        "min": 5.72
+      },
+      "added_by_encode": {
+        "average_ms": 2808.87,
+        "p50_ms": 2723.27,
+        "p95_ms": 3038.69
+      },
+      "encode_disabled": {
+        "average_ms": 5505.64,
+        "p50_ms": 5227.18,
+        "p95_ms": 6120.52
+      },
+      "encode_enabled": {
+        "average_ms": 8314.51,
+        "p50_ms": 7950.45,
+        "p95_ms": 9159.2
+      },
+      "runs": [
+        {
+          "actual_audio_seconds": 6.08,
+          "iteration": 1,
+          "native_plus_encode_ms": 9293.51,
+          "native_tts_ms": 6219.78,
+          "watermark_encode_ms": 3073.73
+        },
+        {
+          "actual_audio_seconds": 5.84,
+          "iteration": 2,
+          "native_plus_encode_ms": 7699.57,
+          "native_tts_ms": 5069.95,
+          "watermark_encode_ms": 2629.61
+        },
+        {
+          "actual_audio_seconds": 5.72,
+          "iteration": 3,
+          "native_plus_encode_ms": 7950.45,
+          "native_tts_ms": 5227.18,
+          "watermark_encode_ms": 2723.27
+        }
+      ],
+      "target_seconds": 5,
+      "text_word_count": 13
+    },
+    {
+      "actual_audio_seconds": {
+        "average": 10.227,
+        "max": 10.72,
+        "min": 9.96
+      },
+      "added_by_encode": {
+        "average_ms": 3462.79,
+        "p50_ms": 3490.3,
+        "p95_ms": 3555.11
+      },
+      "encode_disabled": {
+        "average_ms": 7859.35,
+        "p50_ms": 7800.74,
+        "p95_ms": 8438.22
+      },
+      "encode_enabled": {
+        "average_ms": 11322.14,
+        "p50_ms": 11291.04,
+        "p95_ms": 11993.33
+      },
+      "runs": [
+        {
+          "actual_audio_seconds": 10.0,
+          "iteration": 1,
+          "native_plus_encode_ms": 10604.01,
+          "native_tts_ms": 7268.26,
+          "watermark_encode_ms": 3335.75
+        },
+        {
+          "actual_audio_seconds": 10.72,
+          "iteration": 2,
+          "native_plus_encode_ms": 12071.36,
+          "native_tts_ms": 8509.05,
+          "watermark_encode_ms": 3562.32
+        },
+        {
+          "actual_audio_seconds": 9.96,
+          "iteration": 3,
+          "native_plus_encode_ms": 11291.04,
+          "native_tts_ms": 7800.74,
+          "watermark_encode_ms": 3490.3
+        }
+      ],
+      "target_seconds": 10,
+      "text_word_count": 22
+    },
+    {
+      "actual_audio_seconds": {
+        "average": 30.613,
+        "max": 31.88,
+        "min": 29.24
+      },
+      "added_by_encode": {
+        "average_ms": 6647.49,
+        "p50_ms": 6592.4,
+        "p95_ms": 7074.93
+      },
+      "encode_disabled": {
+        "average_ms": 20090.78,
+        "p50_ms": 20864.45,
+        "p95_ms": 22658.58
+      },
+      "encode_enabled": {
+        "average_ms": 26738.27,
+        "p50_ms": 27992.99,
+        "p95_ms": 29304.6
+      },
+      "runs": [
+        {
+          "actual_audio_seconds": 30.72,
+          "iteration": 1,
+          "native_plus_encode_ms": 29450.33,
+          "native_tts_ms": 22857.93,
+          "watermark_encode_ms": 6592.4
+        },
+        {
+          "actual_audio_seconds": 29.24,
+          "iteration": 2,
+          "native_plus_encode_ms": 22771.47,
+          "native_tts_ms": 16549.96,
+          "watermark_encode_ms": 6221.51
+        },
+        {
+          "actual_audio_seconds": 31.88,
+          "iteration": 3,
+          "native_plus_encode_ms": 27992.99,
+          "native_tts_ms": 20864.45,
+          "watermark_encode_ms": 7128.54
+        }
+      ],
+      "target_seconds": 30,
+      "text_word_count": 75
+    }
+  ],
+  "warmups_per_tier": 0
+}

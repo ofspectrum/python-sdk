@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import io
+from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Iterator, Optional, Union
+from typing import BinaryIO, Iterator, Union
 
 from .exceptions import OfSpectrumError
-
 
 CANONICAL_SAMPLE_RATE = 48000
 CANONICAL_CHANNELS = 1

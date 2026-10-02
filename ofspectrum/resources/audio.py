@@ -9,9 +9,9 @@ import threading
 import time
 import uuid
 import weakref
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from collections import deque
 from typing import Any, BinaryIO, Iterable, Optional, Union
 from urllib.parse import urlsplit, urlunsplit
 
