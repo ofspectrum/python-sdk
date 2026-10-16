@@ -2,7 +2,7 @@
 OfSpectrum SDK Data Models
 """
 
-from .audio import DecodeResult, EncodeResult, StreamingEncodeResult
+from .audio import DecodeMatch, DecodeResult, EncodeResult, StreamingEncodeResult
 from .notebook import Notebook, NotebookCreateParams, NotebookMedia
 from .notebook_version import (
     NotebookCommitMedia,
@@ -19,11 +19,12 @@ from .notebook_version import (
     NotebookStorageAdmission,
 )
 from .quota import Quota, QuotaList
-from .token import AiAuthTag, Token, TokenCreateParams, TokenUpdateParams
+from .token import AiAuthTag, EncodingProfile, Token, TokenCreateParams, TokenUpdateParams
 
 __all__ = [
     "Token",
     "AiAuthTag",
+    "EncodingProfile",
     "TokenCreateParams",
     "TokenUpdateParams",
     "Notebook",
@@ -31,6 +32,7 @@ __all__ = [
     "NotebookCreateParams",
     "EncodeResult",
     "DecodeResult",
+    "DecodeMatch",
     "StreamingEncodeResult",
     "Quota",
     "QuotaList",

@@ -108,6 +108,7 @@ class StreamEncodePool:
         channels: int,
         strength: float,
         smooth: bool,
+        interval_seconds: Optional[float] = None,
         verify_and_reencode: bool,
         timeout: Optional[float],
         keepalive_interval_seconds: Optional[float] = None,
@@ -118,6 +119,7 @@ class StreamEncodePool:
         self._channels = channels
         self._strength = strength
         self._smooth = smooth
+        self._interval_seconds = interval_seconds
         self._verify_and_reencode = verify_and_reencode
         self._timeout = timeout
         self._keepalive_interval = keepalive_interval_seconds
@@ -283,9 +285,9 @@ class StreamEncodePool:
 
         streamed = self._encode_pcm(pcm, timeout=timeout)
         rebuilt = rebuild_encoded_media(streamed.encoded_pcm, info)
-        duration = int(round(streamed.audio_duration))
+        duration = streamed.audio_duration
         if duration <= 0 and info.duration_seconds > 0:
-            duration = max(1, int(round(info.duration_seconds)))
+            duration = info.duration_seconds
         return EncodeResult.from_bytes(
             audio_bytes=rebuilt,
             audio_duration=duration,
@@ -577,6 +579,8 @@ class StreamEncodePool:
                     "smooth": self._smooth,
                     "verify_and_reencode": self._verify_and_reencode,
                 }
+                if self._interval_seconds is not None:
+                    config_payload["interval_seconds"] = self._interval_seconds
                 if self._token_id:
                     config_payload["token_id"] = self._token_id
                 websocket.send(
@@ -813,6 +817,7 @@ class AudioResource(BaseResource):
         channels: int,
         strength: float,
         smooth: bool,
+        interval_seconds: Optional[float],
         verify_and_reencode: bool,
         timeout: Optional[float],
     ) -> StreamEncodePool:
@@ -822,6 +827,7 @@ class AudioResource(BaseResource):
             channels,
             strength,
             smooth,
+            interval_seconds,
             verify_and_reencode,
         )
         with self._stream_pools_lock:
@@ -835,6 +841,7 @@ class AudioResource(BaseResource):
                     channels=channels,
                     strength=strength,
                     smooth=smooth,
+                    interval_seconds=interval_seconds,
                     verify_and_reencode=verify_and_reencode,
                     timeout=timeout,
                 )
@@ -851,7 +858,9 @@ class AudioResource(BaseResource):
         channels: int = 1,
         strength: float = 1.0,
         smooth: bool = True,
-        verify_and_reencode: bool = True,
+        interval: Optional[float] = None,
+        interval_seconds: Optional[float] = None,
+        verify_and_reencode: bool = False,
         timeout: Optional[float] = None,
         keepalive_interval_seconds: Optional[float] = None,
     ) -> StreamEncodePool:
@@ -884,6 +893,7 @@ class AudioResource(BaseResource):
             raise ValueError("strength must be a finite number between 0.1 and 2.0")
         if not isinstance(smooth, bool):
             raise ValueError("smooth must be a boolean")
+        resolved_interval = self._resolve_interval(interval, interval_seconds)
         if not isinstance(verify_and_reencode, bool):
             raise ValueError("verify_and_reencode must be a boolean")
         if timeout is not None and (
@@ -905,6 +915,7 @@ class AudioResource(BaseResource):
             channels=channels,
             strength=strength,
             smooth=smooth,
+            interval_seconds=resolved_interval,
             verify_and_reencode=verify_and_reencode,
             timeout=timeout,
             keepalive_interval_seconds=keepalive_interval_seconds,
@@ -951,6 +962,19 @@ class AudioResource(BaseResource):
         return "true" if value else "false"
 
     @staticmethod
+    def _resolve_interval(
+        interval: Optional[float], interval_seconds: Optional[float]
+    ) -> Optional[float]:
+        if interval is not None and interval_seconds is not None and interval != interval_seconds:
+            raise ValueError("interval and interval_seconds must match when both are provided")
+        value = interval_seconds if interval_seconds is not None else interval
+        if value is not None and (
+            isinstance(value, bool) or not math.isfinite(value) or value < 0.0
+        ):
+            raise ValueError("interval_seconds must be a finite non-negative number")
+        return value
+
+    @staticmethod
     def _resolve_response_format(
         response_format: Optional[str],
         *,
@@ -979,6 +1003,7 @@ class AudioResource(BaseResource):
         strength: float = 1.0,
         smooth: bool = True,
         interval: Optional[float] = None,
+        interval_seconds: Optional[float] = None,
         timeout: float = 900.0,
         output_path: Optional[Union[str, Path]] = None,
         save_file: bool = True,
@@ -1018,11 +1043,12 @@ class AudioResource(BaseResource):
             )
             print(f"Encoded {result.audio_duration}s of audio")
         """
+        resolved_interval = self._resolve_interval(interval, interval_seconds)
         self._validate_encode_input(
             audio,
             token_id=token_id,
             strength=strength,
-            interval=interval,
+            interval=resolved_interval,
             timeout=timeout,
         )
         if original_filename is not None and (
@@ -1048,8 +1074,8 @@ class AudioResource(BaseResource):
         }
         if token_id:
             form_data["token_id"] = token_id
-        if interval is not None:
-            form_data["interval"] = str(interval)
+        if resolved_interval is not None:
+            form_data["interval_seconds"] = str(resolved_interval)
         if original_filename:
             form_data["original_filename"] = original_filename.strip()
 
@@ -1118,10 +1144,10 @@ class AudioResource(BaseResource):
         ):
             raise OfSpectrumError(message="Encoding returned an invalid content type")
         try:
-            duration = int(float(response.headers.get("X-Audio-Duration", 0)))
+            duration = float(response.headers.get("X-Audio-Duration", 0))
         except (TypeError, ValueError) as exc:
             raise OfSpectrumError(message="Encoding returned an invalid audio duration") from exc
-        if duration <= 0:
+        if not math.isfinite(duration) or duration <= 0:
             raise OfSpectrumError(message="Encoding response did not include a positive audio duration")
         returned_token_id = response.headers.get("X-Token-Id", token_id)
         if token_id and returned_token_id and returned_token_id != token_id:
@@ -1224,13 +1250,14 @@ class AudioResource(BaseResource):
         *,
         strength: float = 1.0,
         smooth: bool = True,
-        interval: float = 0.0,
+        interval: Optional[float] = None,
+        interval_seconds: Optional[float] = None,
         timeout: float = 900.0,
         output_path: Optional[Union[str, Path]] = None,
         save_file: bool = False,
         keep_original: bool = False,
         check_watermark: bool = False,
-        verify_and_reencode: bool = True,
+        verify_and_reencode: bool = False,
         response_format: str = "stream",
     ) -> EncodeResult:
         """Convenience path: read a media file and encode it over the streaming API.
@@ -1257,8 +1284,7 @@ class AudioResource(BaseResource):
         token_id = token_id.strip() if token_id else ""
         if isinstance(strength, bool) or not math.isfinite(strength) or not 0.1 <= strength <= 2.0:
             raise ValueError("strength must be between 0.1 and 2.0")
-        if isinstance(interval, bool) or not math.isfinite(interval) or interval < 0.0:
-            raise ValueError("interval must be a finite non-negative number")
+        resolved_interval = self._resolve_interval(interval, interval_seconds)
         if isinstance(timeout, bool) or not math.isfinite(timeout) or timeout <= 0.0:
             raise ValueError("timeout must be a finite positive number")
         if not isinstance(smooth, bool):
@@ -1279,13 +1305,14 @@ class AudioResource(BaseResource):
         pcm, info = decode_canonical_interleaved_pcm(source)
         channel_count = max(1, int(info.channels))
         resolved_token_id = token_id
-        if interval == 0.0:
+        if resolved_interval in (None, 0.0):
             pool = self._auto_stream_pool(
                 token_id=token_id,
                 sample_rate=CANONICAL_SAMPLE_RATE,
                 channels=channel_count,
                 strength=strength,
                 smooth=smooth,
+                interval_seconds=resolved_interval,
                 verify_and_reencode=verify_and_reencode,
                 timeout=timeout,
             )
@@ -1302,7 +1329,7 @@ class AudioResource(BaseResource):
                 channels=1,
                 strength=strength,
                 smooth=smooth,
-                interval=interval,
+                interval_seconds=resolved_interval,
                 timeout=timeout,
                 verify_and_reencode=verify_and_reencode,
             )
@@ -1322,7 +1349,7 @@ class AudioResource(BaseResource):
                     channels=1,
                     strength=strength,
                     smooth=smooth,
-                    interval=interval,
+                    interval_seconds=resolved_interval,
                     timeout=timeout,
                     verify_and_reencode=verify_and_reencode,
                 )
@@ -1344,9 +1371,8 @@ class AudioResource(BaseResource):
                 token_id,
             )
         rebuilt = rebuild_encoded_media(encoded_pcm, info)
-        duration = int(round(duration))
         if duration <= 0 and info.duration_seconds > 0:
-            duration = max(1, int(round(info.duration_seconds)))
+            duration = info.duration_seconds
         return EncodeResult.from_bytes(
             audio_bytes=rebuilt,
             audio_duration=duration,
@@ -1365,9 +1391,10 @@ class AudioResource(BaseResource):
         channels: int = 1,
         strength: float = 1.0,
         smooth: bool = True,
-        interval: float = 0.0,
+        interval: Optional[float] = None,
+        interval_seconds: Optional[float] = None,
         timeout: float = 900.0,
-        verify_and_reencode: bool = True,
+        verify_and_reencode: bool = False,
     ) -> StreamingEncodeResult:
         """
         Stream raw PCM float32 little-endian audio for watermark encoding.
@@ -1393,8 +1420,7 @@ class AudioResource(BaseResource):
             raise ValueError("strength must be a finite number between 0.1 and 2.0")
         if not isinstance(smooth, bool):
             raise ValueError("smooth must be a boolean")
-        if isinstance(interval, bool) or not math.isfinite(interval) or interval < 0.0:
-            raise ValueError("interval must be a finite non-negative number")
+        resolved_interval = self._resolve_interval(interval, interval_seconds)
         if isinstance(timeout, bool) or not math.isfinite(timeout) or timeout <= 0.0:
             raise ValueError("timeout must be a finite positive number")
         if not isinstance(verify_and_reencode, bool):
@@ -1415,11 +1441,12 @@ class AudioResource(BaseResource):
             "channels": channels,
             "strength": strength,
             "smooth": smooth,
-            "interval": interval,
             "verify_and_reencode": verify_and_reencode,
         }
         if token_id:
             stream_config["token_id"] = token_id
+        if resolved_interval is not None:
+            stream_config["interval_seconds"] = resolved_interval
         config = {
             "type": "config",
             "config": stream_config,
@@ -1473,17 +1500,28 @@ class AudioResource(BaseResource):
                         return True
 
             stop_watchdog = _start_deadline_watchdog(ws, deadline)
+            sent_pcm = False
+            frame_bytes = 4 * channels
             try:
                 for chunk in pcm_chunks:
                     if not isinstance(chunk, (bytes, bytearray, memoryview)):
                         raise TypeError("pcm_chunks must yield bytes-like objects")
                     if len(chunk) == 0:
                         continue
-                    ws.send(bytes(chunk))
+                    pcm_chunk = bytes(chunk)
+                    if len(pcm_chunk) % frame_bytes:
+                        raise ValueError("PCM chunks must contain whole float32 frames")
+                    sent_pcm = True
+                    ws.send(pcm_chunk)
                     if drain_output(block=False):
                         completed = True
                         break
                 if not completed:
+                    if not sent_pcm:
+                        raise OfSpectrumError(
+                            message="PCM input is empty",
+                            code="StreamingEncodeEmpty",
+                        )
                     ws.send(json.dumps({"type": "end"}))
                     completed = drain_output(block=True)
             except (TypeError, ValueError, OfSpectrumError):

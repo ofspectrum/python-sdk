@@ -53,7 +53,9 @@ from .google import Gemini, GoogleCloudTTS
 from .microsoft import AzureSpeechTTS
 from .models import (
     AiAuthTag,
+    DecodeMatch,
     DecodeResult,
+    EncodingProfile,
     EncodeResult,
     Notebook,
     NotebookCommitMedia,
@@ -112,12 +114,14 @@ __all__ = [
     # Models
     "Token",
     "AiAuthTag",
+    "EncodingProfile",
     "TokenCreateParams",
     "TokenUpdateParams",
     "Notebook",
     "NotebookMedia",
     "NotebookCreateParams",
     "EncodeResult",
+    "DecodeMatch",
     "DecodeResult",
     "StreamingEncodeResult",
     "Quota",

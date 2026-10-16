@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from ofspectrum.elevenlabs import WatermarkController
 
 from ofspectrum import Gemini, GoogleCloudTTS, Ofspectrum, OpenAITTS
 
@@ -43,6 +44,37 @@ class WatermarkAudio:
 
 def watermark_client():
     return SimpleNamespace(audio=WatermarkAudio())
+
+
+def test_controller_normalizes_interval_aliases_without_forcing_omission():
+    audio = WatermarkAudio()
+    controller = WatermarkController(client=SimpleNamespace(audio=audio), token_id="token-1")
+
+    assert controller.encode_bytes(b"audio") == b"marked:audio"
+    assert audio.transports == ["pool"]
+    assert "interval_seconds" not in audio.calls[0][3]
+
+    controller.config(interval=0.0)
+    assert controller.encode_bytes(b"zero") == b"marked:zero"
+    assert audio.transports[-1] == "pool"
+    assert audio.calls[-1][3]["interval_seconds"] == 0.0
+
+    controller.config(interval_seconds=2.0)
+    assert controller.encode_bytes(b"file") == b"marked:file"
+    assert audio.transports[-1] == "file"
+    assert audio.calls[-1][3]["interval_seconds"] == 2.0
+
+    controller.config(interval_seconds=None)
+    assert controller.encode_bytes(b"cleared") == b"marked:cleared"
+    assert audio.transports[-1] == "pool"
+    assert "interval_seconds" not in audio.calls[-1][3]
+
+    controller.config(interval=1.0)
+    controller.config(interval_seconds=1.0)
+    with pytest.raises(ValueError, match="must match"):
+        controller.config(interval=0.0, interval_seconds=1.0)
+    with pytest.raises(ValueError, match="must match"):
+        controller.config(interval=True, interval_seconds=1.0)
 
 
 def test_elevenlabs_reference_still_watermarks_complete_audio():
@@ -185,7 +217,7 @@ def test_gemini_generate_content_preserves_pcm_response(model):
     assert token == "token-1"
     assert options["save_file"] is False
     assert options["response_format"] == "stream"
-    assert options["interval"] == 0.0
+    assert options.get("interval_seconds") is None
     assert options["check_watermark"] is False
     assert watermark.audio.transports == ["pool"]
 
