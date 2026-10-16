@@ -14,6 +14,7 @@ class _UnsetType:
 
 UNSET = _UnsetType()
 OptionalBoolArgument = Union[bool, None, _UnsetType]
+EncodingProfile = Literal["quality"]
 
 
 def _validate_optional_bool_argument(value: Any, field_name: str) -> None:
@@ -47,6 +48,16 @@ def _non_negative_int(value: Any) -> int:
     except (TypeError, ValueError):
         return 0
     return normalized if normalized >= 0 else 0
+
+
+def _encoding_profile(value: Any) -> EncodingProfile:
+    return "quality"
+
+
+def _validate_encoding_profile(value: Any) -> None:
+    if value is None or value == "quality":
+        return
+    raise ValueError("encoding_profile is not available")
 
 
 @dataclass
@@ -88,6 +99,7 @@ class Token:
     version_control_enabled: bool = False
     storage_auto_expand_enabled: bool = False
     storage_entitlement_bytes: int = 0
+    encoding_profile: EncodingProfile = "quality"
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -123,6 +135,7 @@ class Token:
             storage_entitlement_bytes=_non_negative_int(
                 data.get("storage_entitlement_bytes")
             ),
+            encoding_profile=_encoding_profile(data.get("encoding_profile")),
             created_at=data.get("created_at"),
             updated_at=data.get("updated_at"),
         )
@@ -142,6 +155,7 @@ class TokenCreateParams:
     ai_auth_tags: Optional[List[str]] = None
     version_control_override: OptionalBoolArgument = UNSET
     storage_auto_expand_override: OptionalBoolArgument = UNSET
+    encoding_profile: Optional[EncodingProfile] = None
 
     def __post_init__(self) -> None:
         _validate_public_key(self.public_key, required=self.token_type == "pro")
@@ -151,6 +165,7 @@ class TokenCreateParams:
         _validate_optional_bool_argument(
             self.storage_auto_expand_override, "storage_auto_expand_override"
         )
+        _validate_encoding_profile(self.encoding_profile)
 
     def to_dict(self) -> dict:
         """Convert to API request dict"""

@@ -140,6 +140,50 @@ def test_create_params_include_ai_auth_configuration():
     }
 
 
+def test_create_params_accept_quality_without_sending_an_override():
+    params = TokenCreateParams(name="Voice", encoding_profile="quality")
+
+    assert "encoding_profile" not in params.to_dict()
+
+
+def test_token_resource_quality_choice_does_not_send_forbidden_backend_field(monkeypatch):
+    resource = TokensResource(client=None)
+    requests = []
+    def post(path, json):
+        requests.append((path, json))
+        return _Response({"id": "token-1", "name": json["name"], "token_type": "standard"})
+    monkeypatch.setattr(resource, "_post", post)
+    resource.create("Voice", encoding_profile="quality")
+    assert requests == [("/tokens/", {"name": "Voice", "token_type": "standard"})]
+
+
+@pytest.mark.parametrize("value", ["robust", "unknown", "QUALITY", True, 1])
+def test_create_params_reject_unknown_encoding_profiles(value):
+    with pytest.raises(ValueError, match="encoding_profile"):
+        TokenCreateParams(name="Voice", encoding_profile=value)
+
+
+def test_token_defaults_missing_encoding_profile_to_quality():
+    token = Token.from_dict({"id": "token-1", "name": "Voice", "token_type": "standard"})
+
+    assert token.encoding_profile == "quality"
+
+
+def test_token_resource_rejects_unavailable_profile_before_request(monkeypatch):
+    resource = TokensResource(client=None)
+    monkeypatch.setattr(resource, "_post", lambda *_args, **_kwargs: pytest.fail("must not send"))
+
+    with pytest.raises(ValueError, match="not available"):
+        resource.create("Voice", encoding_profile="robust")
+
+
+def test_token_update_does_not_accept_encoding_profile():
+    resource = TokensResource(client=None)
+
+    with pytest.raises(TypeError, match="encoding_profile"):
+        resource.update("token-1", encoding_profile="robust")
+
+
 def test_update_params_include_upgrade_and_ai_auth_configuration():
     params = TokenUpdateParams(
         token_type="pro",

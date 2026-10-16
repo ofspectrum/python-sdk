@@ -12,8 +12,8 @@ The public SDK repository is:
 https://github.com/ofspectrum/python-sdk
 ```
 
-Customer applications should normally install SDK `1.4.0` with
-`pip install "ofspectrum==1.4.0"`; they should not need the private Neo
+Customer applications should normally install SDK `1.4.1` with
+`pip install "ofspectrum==1.4.1"`; they should not need the private Neo
 monorepo source.
 
 If an agent needs SDK source orientation, use the public SDK repository above. From that repository root, inspect these files first:
@@ -241,6 +241,7 @@ Current public token types:
 | Pro | One public notebook; five private notebooks | Permanent 100 MiB | The workflow needs a configurable `public_key` or any new private notebook. |
 | Enterprise | One public notebook; ten private notebooks | Permanent 100 MiB | Admin-managed Enterprise workflows. Public SDK callers cannot create this type. |
 
+
 Recommended behavior:
 
 - Create Standard tokens by default.
@@ -339,7 +340,7 @@ token create or update.
 
 Use `audio.encode()` as the default OneFile integration to embed a watermark
 into one audio file and receive one encoded file through
-`POST /audio/watermark/encode`. Omit `interval` to leave the option unset, or
+`POST /audio/watermark/encode`. Omit `interval_seconds` to leave placement unset, or
 pass `0.0` explicitly for continuous placement. A missing upload content type is inferred from the filename when
 possible. `response_format=stream` remains the backward-compatible binary
 audio-file response; it is not the advanced PCM streaming integration. The
@@ -377,7 +378,7 @@ For local smoke tests, use the non-sine synthetic WAV files in `examples/audio`,
 
 Important: the SDK rejects already-watermarked audio with `WatermarkExistsError`; it does not overwrite an existing watermark. Store source and watermarked files separately.
 
-Audio length note: very short clips may be rejected because some tokens require a minimum audio duration. Use the provided sample audio for smoke tests instead of short beeps or tiny fixtures.
+Audio length note: encode eligibility is determined server-side for the selected assigned token, not from a fixed SDK duration rule. Eligible nonempty short clips can be accepted, but acceptance does not guarantee a recoverable watermark result; longer clips generally provide more evidence. Use the provided sample audio for smoke tests when a stable positive result is needed.
 
 ### Audio Decode
 
@@ -405,7 +406,7 @@ If a workflow requires `public_key` and the wrong key is provided, decode may re
 
 Use `stream_encode_pcm()` only when the application already works with raw PCM
 audio. It uses the existing WebSocket API as an explicit advanced integration;
-do not add a OneFile UI selector for it. Omit `interval` for the default `0.0`
+do not add a OneFile UI selector for it. Omit `interval_seconds` to leave it unset
 behavior.
 
 ```python
@@ -1047,7 +1048,7 @@ Ask the agent to run these checks after implementation. Use a staging or test AP
    - Save the watermarked output separately from the source file.
    - Decode the watermarked output.
    - Confirm `decoded.watermarked` is true and `decoded.token_id` matches the token used for encode.
-   - Confirm short or invalid audio is handled as a clear validation error.
+   - Confirm empty or invalid audio is handled as a clear validation error; record short eligible-audio results without assuming recovery.
    - If the workflow uses `public_key`, test both the correct key and an incorrect key.
 
 6. **Duplicate watermark check**
