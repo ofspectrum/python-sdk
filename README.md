@@ -1,12 +1,14 @@
 # OfSpectrum Python SDK
 
 Official Python SDK for the OfSpectrum audio watermarking API. This guide
-describes the SDK `1.4.0` contract.
+describes the SDK `1.4.1` contract. See the
+[changelog](https://github.com/ofspectrum/python-sdk/blob/main/CHANGELOG.md)
+for release notes and upgrade compatibility details.
 
 ## Installation
 
 ```bash
-pip install "ofspectrum==1.4.0"
+pip install "ofspectrum==1.4.1"
 ```
 
 Or install from source:
@@ -138,6 +140,7 @@ Creating a tag does not attach it to a token. Pass the selected tag names to
 `tokens.create()` or `tokens.update()` to associate them with a token.
 
 Token deletion is not available via API. Tokens are consumable resources.
+
 
 ### Notebook Settings
 
@@ -429,7 +432,7 @@ with OpenAITTS(OpenAI()) as openai:
 
 Set `transport="file"` on the wrapper, or call
 `client.watermark.config(transport="file")`, to force the OneFile endpoint.
-An explicit nonzero `interval`, `check_watermark=True`, and raw A-law/μ-law
+An explicit nonzero `interval_seconds`, `check_watermark=True`, and raw A-law/μ-law
 outputs also use the file endpoint because those options do not fit the pooled
 stream protocol. Both transports remain non-persisting inside provider wrappers.
 
@@ -492,7 +495,7 @@ default is three runs at each 5-, 10-, and 30-second target tier.
 
 `client.audio.encode()` is the default OneFile integration: it sends one audio
 file to `POST /audio/watermark/encode` and returns one encoded audio file. Omit
-`interval` to leave the option unset, or pass `0.0` explicitly for continuous
+`interval_seconds` to leave placement unset, or pass `0.0` explicitly for continuous
 placement. When the upload file does not carry a content type, the service
 infers it from the filename when possible.
 
@@ -501,6 +504,9 @@ response. It is not the advanced streaming PCM integration. OneFile also
 accepts `save_file`, `keep_original`, `check_watermark`, and
 `verify_and_reencode`; they default to the previous SDK behavior and are
 available when a customer needs storage, preflight, or verification control.
+OneFile verification remains enabled by default. Realtime methods and stream
+pools default it to disabled; an explicit legacy `verify_and_reencode=True`
+request remains compatible but does not promise synchronous verification.
 
 `smooth` is the same product option on file encode and streaming encode.
 
@@ -534,7 +540,7 @@ result = client.audio.stream_encode(
     token_id=token.id,
     strength=1.0,
     smooth=True,
-    interval=0.0,
+    interval_seconds=0.0,
     timeout=120.0,
 )
 encoded_file = result.audio_bytes
@@ -582,7 +588,6 @@ with client.audio.open_stream_pool(
     channels=1,
     strength=1.0,
     smooth=True,
-    verify_and_reencode=True,
     keepalive_interval_seconds=120,
 ) as pool:
     result = pool.encode(tts_wav_bytes, timeout=120.0)

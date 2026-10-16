@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+## 1.4.1 - 2026-10-16
+
+### Audio options and compatibility
+
+- Added the canonical `interval_seconds` option to file encode, streaming
+  encode, persistent stream pools, and TTS watermark controllers. The deprecated
+  `interval` alias remains accepted. Conflicting aliases are rejected, and
+  omitted placement remains distinct from an explicit `0.0`.
+- TTS wrappers preserve omitted placement instead of forcing zero. Compatible
+  complete-audio calls keep reusing the stream pool; nonzero placement and
+  file-only options retain the OneFile path.
+- Stream encode and stream pools now default `verify_and_reencode` to `False`,
+  matching realtime service behavior. Explicit legacy `True` values remain
+  accepted but do not guarantee synchronous verification. OneFile verification
+  remains enabled by default.
+- `smooth=True` remains the default for both file and streaming encode. File
+  encode still defaults `save_file` and `keep_original` to `True`; streaming
+  helpers remain non-persisting by default.
+
+### Results and validation
+
+- `EncodeResult.audio_duration` now preserves fractional seconds as a float
+  instead of truncating or rounding short clips to zero. Applications that
+  require an integer display value should round explicitly. Actual encode
+  eligibility remains server-side and depends on the assigned token; acceptance
+  of a short clip does not guarantee a recoverable watermark.
+- Added the exported `DecodeMatch` model and `DecodeResult.results` for
+  server-authorized watermark matches. Existing primary `watermarked` and
+  `token_id` fields remain available. Missing multi-result data produces an
+  empty list, preserving compatibility with older responses.
+- Decode models include authorized access, verification-key, retired-token,
+  and AI-authorization details without exposing internal watermark data.
+- Token creation keeps its existing behavior. The reserved `encoding_profile`
+  compatibility argument accepts only `quality`; it does not enable additional
+  encoding modes or change existing tokens.
+- Raw PCM streaming rejects empty input and incomplete float32 frames. Added
+  regression coverage for short stream-pool flushes, existing pool constructor
+  calls, canonical options, and TTS wrapper compatibility.
+
 ## 1.4.0 - 2026-10-02
 
 - Async TTS calls consume synchronous complete-audio iterators and perform

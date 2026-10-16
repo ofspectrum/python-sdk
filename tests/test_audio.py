@@ -1,5 +1,9 @@
+import ast
 import io
+import inspect
 import json
+from pathlib import Path
+import re
 import threading
 import time
 
@@ -7,8 +11,38 @@ import httpx
 import pytest
 import websockets.sync.client
 
-from ofspectrum import OfSpectrum
+from ofspectrum import DecodeMatch, DecodeResult, OfSpectrum
 from ofspectrum.exceptions import OfSpectrumError
+from ofspectrum.resources.audio import AudioResource
+
+
+def test_public_audio_docs_match_sdk_interval_and_verification_defaults():
+    docs = (Path(__file__).parents[2] / "frontend/src/docs/sdk/audio.ts").read_text(encoding="utf-8")
+    signatures = re.findall(
+        r"^[ \t]*(?:def\s+|audio\.)(encode|stream_encode|stream_encode_pcm|open_stream_pool)"
+        r"\s*\((.*?)\)\s*->[^\n`]+", docs, flags=re.DOTALL | re.MULTILINE,
+    )
+    assert len(signatures) == 8, "Check both overview and detailed signatures for every method"
+    seen = {name: 0 for name in ("encode", "stream_encode", "stream_encode_pcm", "open_stream_pool")}
+    for method, parameters in signatures:
+        seen[method] += 1
+        actual = inspect.signature(getattr(AudioResource, method)).parameters
+        parsed = ast.parse(f"def documented({parameters}):\n    pass").body[0].args
+        documented = {}
+        positional_defaults = [None] * (len(parsed.args) - len(parsed.defaults)) + list(parsed.defaults)
+        for arg, default in zip(parsed.args, positional_defaults):
+            documented[arg.arg] = (inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.empty if default is None else ast.literal_eval(default))
+        for arg, default in zip(parsed.kwonlyargs, parsed.kw_defaults):
+            documented[arg.arg] = (inspect.Parameter.KEYWORD_ONLY,
+                inspect.Parameter.empty if default is None else ast.literal_eval(default))
+        # The canonical signature intentionally omits only the deprecated alias.
+        assert set(documented) == set(actual) - {"self", "interval"}, method
+        for name, (kind, default) in documented.items():
+            assert kind == actual[name].kind, (method, name, "argument kind")
+            assert default == actual[name].default, (method, name, default, actual[name].default)
+        assert actual["interval"].default is actual["interval_seconds"].default is None
+    assert all(count == 2 for count in seen.values())
 
 
 def _response(*, content=b"encoded", headers=None, status_code=200):
@@ -46,14 +80,14 @@ def test_encode_sends_v2_parameters_and_long_audio_timeout():
     assert captured["timeout"] == 900.0
     assert captured["data"]["strength"] == "1.25"
     assert captured["data"]["smooth"] == "false"
-    assert captured["data"]["interval"] == "2.5"
+    assert captured["data"]["interval_seconds"] == "2.5"
     assert captured["data"]["save_file"] == "true"
     assert captured["data"]["keep_original"] == "true"
     assert captured["data"]["check_watermark"] == "true"
     assert captured["data"]["verify_and_reencode"] == "true"
     assert captured["data"]["response_format"] == "stream"
     assert result.audio_bytes == b"encoded"
-    assert result.audio_duration == 180
+    assert result.audio_duration == 180.0
     assert result.quality_warning is True
 
 
@@ -78,8 +112,20 @@ def test_encode_omits_interval_by_default_and_preserves_explicit_zero():
     finally:
         client.close()
 
-    assert "interval" not in requests[0]
-    assert requests[1]["interval"] == "0.0"
+    assert "interval_seconds" not in requests[0]
+    assert requests[1]["interval_seconds"] == "0.0"
+
+
+def test_encode_uses_interval_seconds_and_rejects_conflicting_aliases():
+    client = OfSpectrum(api_key="test-key")
+    client.audio._post = lambda *_args, **_kwargs: pytest.fail("conflicting aliases must not send")
+    try:
+        with pytest.raises(ValueError, match="must match"):
+            client.audio.encode(
+                io.BytesIO(b"audio"), "token-1", interval=0.0, interval_seconds=1.0
+            )
+    finally:
+        client.close()
 
 
 def test_encode_forwards_persistence_flags_and_response_format():
@@ -131,6 +177,79 @@ def test_decode_forwards_save_file():
         client.close()
 
     assert captured["save_file"] == "false"
+
+
+def test_decode_preserves_primary_fields_and_authorized_results_only():
+    parsed = DecodeMatch.from_dict(
+        {
+            "watermarked": 1,
+            "token_id": "token-primary",
+            "access": "owner",
+            "token_type": "pro",
+            "ai_auth_enabled": True,
+            "ai_auth_access_type": "premium_track",
+            "model": "must-not-leak",
+        }
+    )
+    assert parsed.token_id == "token-primary"
+    assert parsed.ai_auth == {
+        "ai_auth_enabled": True,
+        "ai_auth_access_type": "premium_track",
+    }
+    assert not hasattr(parsed, "model")
+
+    result = DecodeResult.from_dict(
+        {
+            "watermarked": 1,
+            "token_id": "token-primary",
+            "access": "owner",
+            "results": [
+                {"watermarked": 1, "token_id": "token-primary", "access": "owner"},
+                {"watermarked": 1, "token_id": "token-authorized", "access": "public"},
+            ],
+        }
+    )
+
+    assert result.token_id == "token-primary"
+    assert [(item.token_id, item.access) for item in result.results] == [
+        ("token-primary", "owner"),
+        ("token-authorized", "public"),
+    ]
+
+
+def test_decode_preserves_authorized_results_when_primary_is_not_watermarked():
+    result = DecodeResult.from_dict(
+        {
+            "watermarked": 0,
+            "token_id": None,
+            "results": [
+                {
+                    "watermarked": 1,
+                    "token_id": "token-authorized",
+                    "access": "public",
+                    "ai_auth_enabled": True,
+                    "ai_auth_access_type": "direct_use",
+                    "ai_auth_price": 5,
+                    "ai_auth_other_instructions": "Attribution required",
+                    "ai_auth_tags": ["voice"],
+                    "decoded_bits": "must-not-leak",
+                    "model": "must-not-leak",
+                }
+            ],
+        }
+    )
+
+    assert result.watermarked is False
+    assert result.results[0].token_id == "token-authorized"
+    assert result.results[0].ai_auth == {
+        "ai_auth_enabled": True,
+        "ai_auth_access_type": "direct_use",
+        "ai_auth_price": 5,
+        "ai_auth_other_instructions": "Attribution required",
+        "ai_auth_tags": ["voice"],
+    }
+    assert not hasattr(result.results[0], "decoded_bits")
+    assert not hasattr(result.results[0], "model")
 
 
 @pytest.mark.parametrize("interval", [-1.0, float("nan"), float("inf"), True])
@@ -210,7 +329,10 @@ class _FakeWebSocket:
 
     def recv(self, timeout=None):
         if self.final_messages:
-            return self.final_messages.pop(0)
+            message = self.final_messages.pop(0)
+            if isinstance(message, BaseException):
+                raise message
+            return message
         if timeout is not None and timeout < 0.05:
             raise TimeoutError
         raise RuntimeError("connection closed")
@@ -226,7 +348,7 @@ def test_stream_encode_rejects_invalid_strength_before_connect(monkeypatch, stre
     client = OfSpectrum(api_key="test-key")
     try:
         with pytest.raises(ValueError, match="strength"):
-            client.audio.stream_encode_pcm([b"pcm"], "token-1", strength=strength)
+            client.audio.stream_encode_pcm([b"pcm!"], "token-1", strength=strength)
     finally:
         client.close()
 
@@ -237,7 +359,7 @@ def test_stream_encode_requires_done_event(monkeypatch):
     client = OfSpectrum(api_key="test-key")
     try:
         with pytest.raises(OfSpectrumError, match="closed before completion"):
-            client.audio.stream_encode_pcm([b"pcm"], "token-1")
+            client.audio.stream_encode_pcm([b"pcm!"], "token-1")
     finally:
         client.close()
 
@@ -253,16 +375,81 @@ def test_stream_encode_returns_only_after_done(monkeypatch):
     monkeypatch.setattr(websockets.sync.client, "connect", lambda *_args, **_kwargs: fake)
     client = OfSpectrum(api_key="test-key")
     try:
-        result = client.audio.stream_encode_pcm([b"pcm"], "token-1", strength=1.25)
+        result = client.audio.stream_encode_pcm([b"pcm!"], "token-1", strength=1.25)
     finally:
         client.close()
 
     config = json.loads(fake.sent[0])
-    assert config["config"]["verify_and_reencode"] is True
+    assert config["config"]["verify_and_reencode"] is False
     assert result.encoded_pcm == b"encoded"
     assert result.events[-1]["type"] == "done"
     assert result.quality_warning is True
     assert result.token_id == "token-1"
+
+
+def test_encode_preserves_fractional_audio_duration():
+    client = OfSpectrum(api_key="test-key")
+    client.audio._post = lambda *_args, **_kwargs: _response(
+        headers={
+            "content-type": "audio/wav",
+            "x-audio-duration": "0.5",
+            "x-token-id": "token-1",
+        },
+    )
+    try:
+        result = client.audio.encode(io.BytesIO(b"audio"), "token-1")
+    finally:
+        client.close()
+
+    assert result.audio_duration == 0.5
+
+
+def test_encode_json_response_preserves_fractional_audio_duration():
+    client = OfSpectrum(api_key="test-key")
+    client.audio._post = lambda *_args, **_kwargs: httpx.Response(
+        200,
+        json={
+            "status": "success",
+            "data": {"download_url": "https://example.test/output.wav", "audio_duration": "0.5"},
+        },
+        headers={"content-type": "application/json"},
+    )
+    try:
+        result = client.audio.encode(
+            io.BytesIO(b"audio"),
+            "token-1",
+            output_path=None,
+            response_format="json",
+        )
+    finally:
+        client.close()
+
+    assert result.audio_duration == 0.5
+
+
+def test_stream_encode_accepts_a_single_pcm_frame_and_sends_end(monkeypatch):
+    fake = _FakeWebSocket([TimeoutError(), b"\x00\x00\x00\x00", '{"type":"done"}'])
+    monkeypatch.setattr(websockets.sync.client, "connect", lambda *_args, **_kwargs: fake)
+    client = OfSpectrum(api_key="test-key")
+    try:
+        result = client.audio.stream_encode_pcm([b"\x00\x00\x00\x00"], "token-1")
+    finally:
+        client.close()
+
+    assert result.encoded_pcm == b"\x00\x00\x00\x00"
+    assert json.loads(fake.sent[-1]) == {"type": "end"}
+
+
+@pytest.mark.parametrize("chunks", [[], [b""], [b"\x00"]])
+def test_stream_encode_rejects_empty_or_partial_pcm_frames(monkeypatch, chunks):
+    fake = _FakeWebSocket([])
+    monkeypatch.setattr(websockets.sync.client, "connect", lambda *_args, **_kwargs: fake)
+    client = OfSpectrum(api_key="test-key")
+    try:
+        with pytest.raises((OfSpectrumError, ValueError), match="empty|whole float32 frames"):
+            client.audio.stream_encode_pcm(chunks, "token-1")
+    finally:
+        client.close()
 
 
 def test_stream_encode_omitted_token_uses_done_event_token_id(monkeypatch):
@@ -275,7 +462,7 @@ def test_stream_encode_omitted_token_uses_done_event_token_id(monkeypatch):
     monkeypatch.setattr(websockets.sync.client, "connect", lambda *_args, **_kwargs: fake)
     client = OfSpectrum(api_key="test-key")
     try:
-        result = client.audio.stream_encode_pcm([b"pcm"])
+        result = client.audio.stream_encode_pcm([b"pcm!"])
     finally:
         client.close()
 
@@ -295,7 +482,7 @@ def test_stream_encode_disables_keepalive_heartbeat_timeout(monkeypatch):
     monkeypatch.setattr(websockets.sync.client, "connect", connect)
     client = OfSpectrum(api_key="test-key")
     try:
-        client.audio.stream_encode_pcm([b"pcm"], "token-1")
+        client.audio.stream_encode_pcm([b"pcm!"], "token-1")
     finally:
         client.close()
 
@@ -332,7 +519,7 @@ def test_stream_encode_timeout_interrupts_blocked_upload(monkeypatch):
     started = time.perf_counter()
     try:
         with pytest.raises(OfSpectrumError, match="timed out"):
-            client.audio.stream_encode_pcm([b"pcm"], "token-1", timeout=0.05)
+            client.audio.stream_encode_pcm([b"pcm!"], "token-1", timeout=0.05)
     finally:
         client.close()
 
@@ -350,6 +537,6 @@ def test_stream_encode_rejects_invalid_timeout_before_connect(monkeypatch, timeo
     client = OfSpectrum(api_key="test-key")
     try:
         with pytest.raises(ValueError, match="timeout"):
-            client.audio.stream_encode_pcm([b"pcm"], "token-1", timeout=timeout)
+            client.audio.stream_encode_pcm([b"pcm!"], "token-1", timeout=timeout)
     finally:
         client.close()

@@ -96,6 +96,7 @@ class TokensResource(BaseResource):
         ai_auth_tags: Optional[List[str]] = None,
         version_control_override: OptionalBoolArgument = UNSET,
         storage_auto_expand_override: OptionalBoolArgument = UNSET,
+        encoding_profile: Optional[Literal["quality"]] = None,
     ) -> Token: ...
 
     @overload
@@ -111,6 +112,7 @@ class TokensResource(BaseResource):
         ai_auth_tags: Optional[List[str]] = None,
         version_control_override: OptionalBoolArgument = UNSET,
         storage_auto_expand_override: OptionalBoolArgument = UNSET,
+        encoding_profile: Optional[Literal["quality"]] = None,
     ) -> Token: ...
 
     def create(
@@ -125,6 +127,7 @@ class TokensResource(BaseResource):
         ai_auth_tags: Optional[List[str]] = None,
         version_control_override: OptionalBoolArgument = UNSET,
         storage_auto_expand_override: OptionalBoolArgument = UNSET,
+        encoding_profile: Optional[Literal["quality"]] = None,
     ) -> Token:
         """
         Create a new watermark token.
@@ -142,6 +145,7 @@ class TokensResource(BaseResource):
                                       or omit to use the API default
             storage_auto_expand_override: True/False to override, None to inherit,
                                           or omit to use the API default
+            encoding_profile: Reserved compatibility argument. Only "quality" is available.
 
         Returns:
             Newly created Token object
@@ -174,6 +178,7 @@ class TokensResource(BaseResource):
             ai_auth_tags=ai_auth_tags,
             version_control_override=version_control_override,
             storage_auto_expand_override=storage_auto_expand_override,
+            encoding_profile=encoding_profile,
         )
 
         response = self._post("/tokens/", json=params.to_dict())

@@ -230,6 +230,25 @@ def test_stream_encode_reuses_auto_pool_connections(monkeypatch):
         client.close()
 
 
+def test_stream_pool_flushes_a_single_pcm_frame(monkeypatch):
+    factory = _PoolFactory([_success_scenario(encoded=b"\x00\x00\x00\x00")])
+    monkeypatch.setattr(websockets.sync.client, "connect", factory)
+    client = OfSpectrum(api_key="test-key")
+    try:
+        with client.audio.open_stream_pool("token-1", connections=1) as pool:
+            result = pool._encode_pcm(b"\x00\x00\x00\x00", timeout=2.0)
+    finally:
+        client.close()
+
+    assert result.encoded_pcm == b"\x00\x00\x00\x00"
+    sent = factory.connections[0].sent
+    assert b"\x00\x00\x00\x00" in sent
+    assert any(
+        isinstance(message, str) and json.loads(message).get("type") == "flush"
+        for message in sent
+    )
+
+
 def test_tts_controller_reuses_the_audio_resource_auto_pool(monkeypatch):
     factory = _PoolFactory([_success_scenario(operations=2)])
     monkeypatch.setattr(websockets.sync.client, "connect", factory)
