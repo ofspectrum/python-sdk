@@ -140,9 +140,52 @@ def test_create_params_include_ai_auth_configuration():
     }
 
 
-def test_update_params_include_upgrade_and_ai_auth_configuration():
+def test_create_params_accept_quality_without_sending_an_override():
+    params = TokenCreateParams(name="Voice", encoding_profile="quality")
+
+    assert "encoding_profile" not in params.to_dict()
+
+
+def test_token_resource_quality_choice_does_not_send_forbidden_backend_field(monkeypatch):
+    resource = TokensResource(client=None)
+    requests = []
+    def post(path, json):
+        requests.append((path, json))
+        return _Response({"id": "token-1", "name": json["name"], "token_type": "standard"})
+    monkeypatch.setattr(resource, "_post", post)
+    resource.create("Voice", encoding_profile="quality")
+    assert requests == [("/tokens/", {"name": "Voice", "token_type": "standard"})]
+
+
+@pytest.mark.parametrize("value", ["robust", "unknown", "QUALITY", True, 1])
+def test_create_params_reject_unknown_encoding_profiles(value):
+    with pytest.raises(ValueError, match="encoding_profile"):
+        TokenCreateParams(name="Voice", encoding_profile=value)
+
+
+def test_token_defaults_missing_encoding_profile_to_quality():
+    token = Token.from_dict({"id": "token-1", "name": "Voice", "token_type": "standard"})
+
+    assert token.encoding_profile == "quality"
+
+
+def test_token_resource_rejects_unavailable_profile_before_request(monkeypatch):
+    resource = TokensResource(client=None)
+    monkeypatch.setattr(resource, "_post", lambda *_args, **_kwargs: pytest.fail("must not send"))
+
+    with pytest.raises(ValueError, match="not available"):
+        resource.create("Voice", encoding_profile="robust")
+
+
+def test_token_update_does_not_accept_encoding_profile():
+    resource = TokensResource(client=None)
+
+    with pytest.raises(TypeError, match="encoding_profile"):
+        resource.update("token-1", encoding_profile="robust")
+
+
+def test_update_params_include_ai_auth_configuration():
     params = TokenUpdateParams(
-        token_type="pro",
         public_key=123,
         ai_auth_enabled=False,
         ai_auth_price=None,
@@ -151,13 +194,87 @@ def test_update_params_include_upgrade_and_ai_auth_configuration():
     )
 
     assert params.to_dict() == {
-        "token_type": "pro",
         "public_key": 123,
         "ai_auth_enabled": False,
         "ai_auth_price": None,
         "ai_auth_other_instructions": "",
         "ai_auth_tags": [],
     }
+
+
+@pytest.mark.parametrize("token_type", ["standard", "pro", "enterprise"])
+def test_token_updates_reject_token_type_before_network(token_type):
+    resource = TokensResource(client=None)
+    with pytest.raises(TypeError, match="token_type"):
+        resource.update("token-1", token_type=token_type)
+    with pytest.raises(TypeError, match="token_type"):
+        TokenUpdateParams(token_type=token_type)
+
+
+@pytest.mark.parametrize("token_type", ["standard", "pro", "enterprise"])
+@pytest.mark.parametrize("trailing_flags", [(), (True, False)])
+def test_token_update_rejects_old_positional_type_before_network(
+    monkeypatch, token_type, trailing_flags,
+):
+    resource = TokensResource(client=None)
+    monkeypatch.setattr(
+        resource, "_patch",
+        lambda *_args, **_kwargs: pytest.fail("old positional type must not be sent"),
+    )
+    with pytest.raises(TypeError):
+        resource.update("token-1", "Renamed", 123, token_type, *trailing_flags)
+
+
+@pytest.mark.parametrize("token_type", ["standard", "pro", "enterprise"])
+def test_token_update_params_reject_old_positional_type(token_type):
+    with pytest.raises(ValueError, match="enterprise_verification"):
+        TokenUpdateParams("Renamed", 123, token_type)
+
+
+@pytest.mark.parametrize("field_name", ["enterprise_verification", "ai_auth_enabled"])
+@pytest.mark.parametrize("value", ["pro", "false", 0, 1, 1.0, {}, UNSET])
+def test_token_update_rejects_non_boolean_flags_before_network(monkeypatch, field_name, value):
+    resource = TokensResource(client=None)
+    monkeypatch.setattr(
+        resource, "_patch",
+        lambda *_args, **_kwargs: pytest.fail("invalid boolean flag must not be sent"),
+    )
+    with pytest.raises(ValueError, match=field_name):
+        TokenUpdateParams(**{field_name: value})
+    with pytest.raises(ValueError, match=field_name):
+        resource.update("token-1", **{field_name: value})
+
+
+@pytest.mark.parametrize("field_name", ["enterprise_verification", "ai_auth_enabled"])
+@pytest.mark.parametrize("value", [None, False, True])
+def test_token_update_params_preserve_boolean_flags(field_name, value):
+    data = TokenUpdateParams(**{field_name: value}).to_dict()
+    if value is None:
+        assert field_name not in data
+    else:
+        assert data[field_name] is value
+
+
+def test_token_update_preserves_rename_and_settings():
+    resource = TokensResource(client=None)
+    requests = []
+
+    def patch(path, *, json):
+        requests.append((path, json))
+        return _Response({"id": "token-1", "token_type": "pro", **json})
+
+    resource._patch = patch
+    token = resource.update(
+        "token-1", "Renamed", 123, enterprise_verification=False, ai_auth_enabled=True,
+        version_control_override=None, storage_auto_expand_override=False,
+    )
+    assert token.name == "Renamed"
+    assert token.token_type == "pro"
+    assert requests == [("/tokens/token-1", {
+        "name": "Renamed", "public_key": 123,
+        "enterprise_verification": False, "ai_auth_enabled": True,
+        "version_control_override": None, "storage_auto_expand_override": False,
+    })]
 
 
 @pytest.mark.parametrize("value", [None, False, True])

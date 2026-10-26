@@ -1,6 +1,74 @@
 # Changelog
 
-## Unreleased
+## 1.5.0 - 2026-10-23
+
+### Migration notes
+
+This release changes file-encode storage defaults and removes self-service token
+type changes. Callers that need persistent user files must explicitly pass
+`save_file=True`; callers that need a download URL must explicitly request
+`response_format="json"`. Both response formats still return `EncodeResult`:
+binary responses populate `audio_bytes`, while JSON populates `download_url`.
+Local `output_path` does not opt into server persistence or JSON output.
+Existing tokens, their assigned capabilities, Decode defaults, and normal token
+metadata updates remain unchanged.
+
+### Changes
+
+- Removed token type changes from `tokens.update()` and `TokenUpdateParams`.
+  Token creation, renaming, verification settings, AI authorization, and notebook
+  overrides remain available.
+  Settings after `public_key` in `tokens.update()` are keyword-only to reject
+  removed positional arguments rather than reinterpret them as flags. Update
+  parameter models strictly validate optional boolean flags.
+- File `audio.encode()` now defaults to `save_file=False` and
+  `response_format="stream"`, independent of `output_path`. The path saves only
+  locally. Explicit `None` also resolves to the binary response.
+- `keep_original=True` remains the compatibility default but is ignored when
+  `save_file=False`. Explicit `save_file=True` preserves source-storage behavior.
+  With `save_file=False`, explicit `response_format="json"` returns a temporary
+  download URL valid for one hour without creating a persistent user file.
+  Expired temporary data is cleaned up asynchronously, with retries as needed.
+  Decode and streaming defaults are unchanged.
+
+## 1.4.1 - 2026-10-16
+
+### Audio options and compatibility
+
+- Added the canonical `interval_seconds` option to file encode, streaming
+  encode, persistent stream pools, and TTS watermark controllers. The deprecated
+  `interval` alias remains accepted. Conflicting aliases are rejected, and
+  omitted placement remains distinct from an explicit `0.0`.
+- TTS wrappers preserve omitted placement instead of forcing zero. Compatible
+  complete-audio calls keep reusing the stream pool; nonzero placement and
+  file-only options retain the OneFile path.
+- Stream encode and stream pools now default `verify_and_reencode` to `False`,
+  matching realtime service behavior. Explicit legacy `True` values remain
+  accepted but do not guarantee synchronous verification. OneFile verification
+  remains enabled by default.
+- `smooth=True` remains the default for both file and streaming encode. File
+  encode still defaults `save_file` and `keep_original` to `True`; streaming
+  helpers remain non-persisting by default.
+
+### Results and validation
+
+- `EncodeResult.audio_duration` now preserves fractional seconds as a float
+  instead of truncating or rounding short clips to zero. Applications that
+  require an integer display value should round explicitly. Actual encode
+  eligibility remains server-side and depends on the assigned token; acceptance
+  of a short clip does not guarantee a recoverable watermark.
+- Added the exported `DecodeMatch` model and `DecodeResult.results` for
+  server-authorized watermark matches. Existing primary `watermarked` and
+  `token_id` fields remain available. Missing multi-result data produces an
+  empty list, preserving compatibility with older responses.
+- Decode models include authorized access, verification-key, retired-token,
+  and AI-authorization details without exposing internal watermark data.
+- Token creation keeps its existing behavior. The reserved `encoding_profile`
+  compatibility argument accepts only `quality`; it does not enable additional
+  encoding modes or change existing tokens.
+- Raw PCM streaming rejects empty input and incomplete float32 frames. Added
+  regression coverage for short stream-pool flushes, existing pool constructor
+  calls, canonical options, and TTS wrapper compatibility.
 
 ## 1.4.0 - 2026-10-02
 

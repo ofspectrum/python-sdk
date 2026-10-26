@@ -1,12 +1,14 @@
 # OfSpectrum Python SDK
 
 Official Python SDK for the OfSpectrum audio watermarking API. This guide
-describes the SDK `1.4.0` contract.
+describes the SDK `1.5.0` contract. See the
+[changelog](https://github.com/ofspectrum/python-sdk/blob/main/CHANGELOG.md)
+for release notes and upgrade compatibility details.
 
 ## Installation
 
 ```bash
-pip install "ofspectrum==1.4.0"
+pip install "ofspectrum==1.5.0"
 ```
 
 Or install from source:
@@ -63,14 +65,19 @@ account:
 
 | Token Type | Notebook Contract | Permanent Account Capacity |
 |------------|-------------------|----------------------------|
-| Standard | One public notebook; no new private notebooks (zero) | Permanent 100 MiB |
-| Pro | One public notebook; five private notebooks | Permanent 100 MiB |
-| Enterprise | One public notebook; ten private notebooks | Permanent 100 MiB |
+| Standard | One public notebook; no new private notebooks (zero) | 100 MiB default |
+| Pro | One public notebook; five private notebooks | 100 MiB default |
+| Enterprise | One public notebook; ten private notebooks | 100 MiB default |
+
+Included storage follows the applicable account policy and may be zero. Read
+`storage_entitlement_bytes` for the actual grant. New tokens and copies snapshot
+that policy; publication alone does not change existing grants. Grant adjustments
+are administrator-managed and may include decreases; callers cannot set them.
+Retirement preserves the last grant. Capacity is account-shared, not
+a per-token hard limit; reducing it does not delete files.
 
 Public SDK callers can create Standard and Pro tokens. Enterprise creation is
-Admin-managed. Retiring a token does not remove its permanent capacity, and a
-Standard-to-Pro upgrade replaces the token type; storage stays 100 MiB and
-does not stack.
+Admin-managed. Retiring a token does not remove its permanent capacity.
 
 ```python
 import os
@@ -98,14 +105,6 @@ token = client.tokens.update(
 # Update a Pro token verification key.
 token = client.tokens.update(
     token_id="token-uuid",
-    public_key=verification_key,
-)
-
-# Upgrade an existing Standard token to Pro.
-# Token types can be upgraded, but not downgraded.
-token = client.tokens.update(
-    token_id="token-uuid",
-    token_type="pro",
     public_key=verification_key,
 )
 
@@ -138,6 +137,7 @@ Creating a tag does not attach it to a token. Pass the selected tag names to
 `tokens.create()` or `tokens.update()` to associate them with a token.
 
 Token deletion is not available via API. Tokens are consumable resources.
+
 
 ### Notebook Settings
 
@@ -429,7 +429,7 @@ with OpenAITTS(OpenAI()) as openai:
 
 Set `transport="file"` on the wrapper, or call
 `client.watermark.config(transport="file")`, to force the OneFile endpoint.
-An explicit nonzero `interval`, `check_watermark=True`, and raw A-law/μ-law
+An explicit nonzero `interval_seconds`, `check_watermark=True`, and raw A-law/μ-law
 outputs also use the file endpoint because those options do not fit the pooled
 stream protocol. Both transports remain non-persisting inside provider wrappers.
 
@@ -492,15 +492,25 @@ default is three runs at each 5-, 10-, and 30-second target tier.
 
 `client.audio.encode()` is the default OneFile integration: it sends one audio
 file to `POST /audio/watermark/encode` and returns one encoded audio file. Omit
-`interval` to leave the option unset, or pass `0.0` explicitly for continuous
+`interval_seconds` to leave placement unset, or pass `0.0` explicitly for continuous
 placement. When the upload file does not carry a content type, the service
 infers it from the filename when possible.
 
 `response_format=stream` remains the backward-compatible binary audio-file
-response. It is not the advanced streaming PCM integration. OneFile also
-accepts `save_file`, `keep_original`, `check_watermark`, and
-`verify_and_reencode`; they default to the previous SDK behavior and are
-available when a customer needs storage, preflight, or verification control.
+response and the default, even when `output_path` is set. It is not the advanced
+streaming PCM integration. `output_path` only writes the result locally.
+OneFile defaults to `save_file=False`: no persistent user file is created.
+`keep_original=True` remains the compatibility default but is ignored unless
+`save_file=True` explicitly opts into persistent storage. Set `keep_original=False`
+with `save_file=True` to save only the encoded result, not the uploaded source.
+Explicit `response_format="json"` with `save_file=False` returns a temporary
+download URL valid for one hour, not a persistent file in My Tokens. Expired
+temporary data is cleaned up asynchronously; physical deletion need not happen
+at the exact expiry instant. `check_watermark` and `verify_and_reencode` remain
+available for preflight and verification control.
+OneFile verification remains enabled by default. Realtime methods and stream
+pools default it to disabled; an explicit legacy `verify_and_reencode=True`
+request remains compatible but does not promise synchronous verification.
 
 `smooth` is the same product option on file encode and streaming encode.
 
@@ -534,7 +544,7 @@ result = client.audio.stream_encode(
     token_id=token.id,
     strength=1.0,
     smooth=True,
-    interval=0.0,
+    interval_seconds=0.0,
     timeout=120.0,
 )
 encoded_file = result.audio_bytes
@@ -582,7 +592,6 @@ with client.audio.open_stream_pool(
     channels=1,
     strength=1.0,
     smooth=True,
-    verify_and_reencode=True,
     keepalive_interval_seconds=120,
 ) as pool:
     result = pool.encode(tts_wav_bytes, timeout=120.0)

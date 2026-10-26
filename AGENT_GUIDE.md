@@ -12,8 +12,8 @@ The public SDK repository is:
 https://github.com/ofspectrum/python-sdk
 ```
 
-Customer applications should normally install SDK `1.4.0` with
-`pip install "ofspectrum==1.4.0"`; they should not need the private Neo
+Customer applications should normally install SDK `1.5.0` with
+`pip install "ofspectrum==1.5.0"`; they should not need the private Neo
 monorepo source.
 
 If an agent needs SDK source orientation, use the public SDK repository above. From that repository root, inspect these files first:
@@ -237,18 +237,16 @@ Current public token types:
 
 | Type | Notebook Contract | Permanent Account Capacity | Use When |
 |------|-------------------|----------------------------|----------|
-| Standard | One public notebook; no new private notebooks (zero) | Permanent 100 MiB | The app needs neither a custom verification key nor a new private notebook. |
-| Pro | One public notebook; five private notebooks | Permanent 100 MiB | The workflow needs a configurable `public_key` or any new private notebook. |
-| Enterprise | One public notebook; ten private notebooks | Permanent 100 MiB | Admin-managed Enterprise workflows. Public SDK callers cannot create this type. |
+| Standard | One public notebook; no new private notebooks (zero) | 100 MiB default | The app needs neither a custom verification key nor a new private notebook. |
+| Pro | One public notebook; five private notebooks | 100 MiB default | The workflow needs a configurable `public_key` or any new private notebook. |
+| Enterprise | One public notebook; ten private notebooks | 100 MiB default | Admin-managed Enterprise workflows. Public SDK callers cannot create this type. |
+
 
 Recommended behavior:
 
 - Create Standard tokens by default.
 - Create Pro tokens when the customer needs a configurable verification key or any new private notebook.
-- Existing tokens can be upgraded from Standard to Pro, but cannot be downgraded.
-- A Standard-to-Pro upgrade replaces the token type; storage entitlement stays 100 MiB and does not stack.
 - Permanent capacity remains with the account after token retirement.
-- A token type upgrade may consume quota or incur a billing charge.
 - Store token IDs in the customer app database.
 
 Token responses in SDK `1.2.0` also expose:
@@ -339,13 +337,21 @@ token create or update.
 
 Use `audio.encode()` as the default OneFile integration to embed a watermark
 into one audio file and receive one encoded file through
-`POST /audio/watermark/encode`. Omit `interval` to leave the option unset, or
+`POST /audio/watermark/encode`. Omit `interval_seconds` to leave placement unset, or
 pass `0.0` explicitly for continuous placement. A missing upload content type is inferred from the filename when
 possible. `response_format=stream` remains the backward-compatible binary
 audio-file response; it is not the advanced PCM streaming integration. The
 SDK also forwards `save_file`, `keep_original`, `check_watermark`, and
-optional `original_filename` to the OneFile API. Defaults match the previous
-hard-coded behavior.
+optional `original_filename` to the OneFile API. `save_file=False` is the default:
+no persistent user file is created. The response defaults to binary
+`response_format="stream"` even with `output_path`, which only saves locally.
+`keep_original=True` is retained for compatibility and ignored when
+`save_file=False`. Explicit `save_file=True` saves the encoded result and, by
+default, the uploaded source; set `keep_original=False` to omit the source.
+Explicit `response_format="json"` with `save_file=False` returns a temporary
+download URL valid for one hour, not a persistent file in My Tokens. Cleanup
+after expiry is asynchronous and may retry; do not promise physical deletion
+at the exact expiry instant.
 
 Use `audio.stream_encode()` for low-latency file encode. Use `audio.encode()`
 when the caller wants the original-container OneFile path. `smooth` is the
@@ -377,7 +383,7 @@ For local smoke tests, use the non-sine synthetic WAV files in `examples/audio`,
 
 Important: the SDK rejects already-watermarked audio with `WatermarkExistsError`; it does not overwrite an existing watermark. Store source and watermarked files separately.
 
-Audio length note: very short clips may be rejected because some tokens require a minimum audio duration. Use the provided sample audio for smoke tests instead of short beeps or tiny fixtures.
+Audio length note: encode eligibility is determined server-side for the selected assigned token, not from a fixed SDK duration rule. Eligible nonempty short clips can be accepted, but acceptance does not guarantee a recoverable watermark result; longer clips generally provide more evidence. Use the provided sample audio for smoke tests when a stable positive result is needed.
 
 ### Audio Decode
 
@@ -405,7 +411,7 @@ If a workflow requires `public_key` and the wrong key is provided, decode may re
 
 Use `stream_encode_pcm()` only when the application already works with raw PCM
 audio. It uses the existing WebSocket API as an explicit advanced integration;
-do not add a OneFile UI selector for it. Omit `interval` for the default `0.0`
+do not add a OneFile UI selector for it. Omit `interval_seconds` to leave it unset
 behavior.
 
 ```python
@@ -513,7 +519,7 @@ Additional constraints:
 - Private notebook credentials must be unique under the same token.
 - Private notebook credentials are optional at the SDK level, but apps that need credential-gated private metadata should explicitly pass `credential_val`.
 - Notebook media is limited to detected image, audio, and video content. Each notebook accepts at most 500 current files, each file may be up to 100 MiB, and notebook text is limited to 10 MiB of UTF-8 data.
-- Media consumes account capacity. Each acquired Standard, Pro, or Enterprise token contributes a permanent 100 MiB entitlement; available capacity may also include legacy credit and paid whole-GiB blocks.
+- Media consumes account capacity. Each acquired Standard, Pro, or Enterprise token contributes its policy-defined grant (100 MiB by default, possibly zero); use `storage_entitlement_bytes`, not a hardcoded amount. Thus available capacity may also include legacy credit and paid whole-GiB blocks.
 - Standard tokens cannot create new private notebooks. Existing Standard private notebooks are grandfathered and remain editable or deletable, but cannot be replaced after deletion.
 - Pro tokens support five private notebooks, and Enterprise tokens support ten.
 - If a token already has a public notebook, update the existing notebook instead of creating another one.
@@ -913,7 +919,7 @@ Recommended runtime flow:
 - API keys are created in the OfSpectrum dashboard, not through the SDK.
 - Token IDs, notebook IDs, media IDs, and current revisions should be stored in the customer app database.
 - Standard tokens are the safest default for new workflows.
-- Standard, Pro, and Enterprise tokens each contribute a permanent 100 MiB account capacity.
+- Standard, Pro, and Enterprise tokens each contribute policy-defined shared account capacity (100 MiB default). New creation and copies snapshot the rule. Publication does not rewrite existing grants. Grant adjustments are administrator-managed and may include decreases; SDK callers cannot set them. Retirement preserves the last grant. No per-token hard cap is introduced and capacity reductions do not delete files.
 - Pro tokens are needed when the workflow requires a configurable `public_key` or up to five private notebooks; Enterprise creation is Admin-managed.
 - Account defaults and storage charge authorization are configured in the Web Console, not through an API key.
 - A staged save begins one session and reuses its `save_session_id` across all files and the commit.
@@ -1047,7 +1053,7 @@ Ask the agent to run these checks after implementation. Use a staging or test AP
    - Save the watermarked output separately from the source file.
    - Decode the watermarked output.
    - Confirm `decoded.watermarked` is true and `decoded.token_id` matches the token used for encode.
-   - Confirm short or invalid audio is handled as a clear validation error.
+   - Confirm empty or invalid audio is handled as a clear validation error; record short eligible-audio results without assuming recovery.
    - If the workflow uses `public_key`, test both the correct key and an incorrect key.
 
 6. **Duplicate watermark check**
