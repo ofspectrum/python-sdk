@@ -96,6 +96,7 @@ class TokensResource(BaseResource):
         ai_auth_tags: Optional[List[str]] = None,
         version_control_override: OptionalBoolArgument = UNSET,
         storage_auto_expand_override: OptionalBoolArgument = UNSET,
+        encoding_profile: Optional[Literal["quality"]] = None,
     ) -> Token: ...
 
     @overload
@@ -111,6 +112,7 @@ class TokensResource(BaseResource):
         ai_auth_tags: Optional[List[str]] = None,
         version_control_override: OptionalBoolArgument = UNSET,
         storage_auto_expand_override: OptionalBoolArgument = UNSET,
+        encoding_profile: Optional[Literal["quality"]] = None,
     ) -> Token: ...
 
     def create(
@@ -125,6 +127,7 @@ class TokensResource(BaseResource):
         ai_auth_tags: Optional[List[str]] = None,
         version_control_override: OptionalBoolArgument = UNSET,
         storage_auto_expand_override: OptionalBoolArgument = UNSET,
+        encoding_profile: Optional[Literal["quality"]] = None,
     ) -> Token:
         """
         Create a new watermark token.
@@ -142,6 +145,7 @@ class TokensResource(BaseResource):
                                       or omit to use the API default
             storage_auto_expand_override: True/False to override, None to inherit,
                                           or omit to use the API default
+            encoding_profile: Reserved compatibility argument. Only "quality" is available.
 
         Returns:
             Newly created Token object
@@ -174,6 +178,7 @@ class TokensResource(BaseResource):
             ai_auth_tags=ai_auth_tags,
             version_control_override=version_control_override,
             storage_auto_expand_override=storage_auto_expand_override,
+            encoding_profile=encoding_profile,
         )
 
         response = self._post("/tokens/", json=params.to_dict())
@@ -190,7 +195,7 @@ class TokensResource(BaseResource):
         token_id: str,
         name: Optional[str] = None,
         public_key: Optional[int] = None,
-        token_type: Optional[Literal["standard", "pro", "enterprise"]] = None,
+        *,
         enterprise_verification: Optional[bool] = None,
         ai_auth_enabled: Optional[bool] = None,
         ai_auth_access_type: Optional[Literal["direct_use", "premium_track"]] = None,
@@ -203,11 +208,12 @@ class TokensResource(BaseResource):
         """
         Update an existing token.
 
+        Settings after public_key must be passed by keyword.
+
         Args:
             token_id: The token UUID
             name: New name (optional)
             public_key: New verification key when your token workflow supports it (optional)
-            token_type: New token type. The API permits upgrades but rejects downgrades.
             enterprise_verification: Enterprise-only verification setting for eligible accounts (optional)
             ai_auth_enabled: Whether AI authorization is enabled
             ai_auth_access_type: "direct_use" or "premium_track" (optional)
@@ -225,7 +231,6 @@ class TokensResource(BaseResource):
         params = TokenUpdateParams(
             name=name,
             public_key=public_key,
-            token_type=token_type,
             enterprise_verification=enterprise_verification,
             ai_auth_enabled=ai_auth_enabled,
             ai_auth_access_type=ai_auth_access_type,

@@ -10,6 +10,7 @@ import functools
 import inspect
 import io
 import logging
+import math
 import os
 import re
 import threading
@@ -58,6 +59,7 @@ _STREAM_METHOD_NAMES = {
 _ENCODE_OPTION_NAMES = {
     "check_watermark",
     "interval",
+    "interval_seconds",
     "smooth",
     "strength",
     "timeout",
@@ -224,7 +226,8 @@ class WatermarkController:
         """Update watermark settings and return this controller.
 
         Supported encode options currently mirror the safe subset of
-        ``OfSpectrum.audio.encode``: ``strength``, ``smooth``, ``interval``,
+        ``OfSpectrum.audio.encode``: ``strength``, ``smooth``, ``interval_seconds``
+        (with deprecated ``interval`` compatibility),
         ``timeout``, ``check_watermark``, and ``verify_and_reencode``.
         ``transport`` accepts ``"pool"`` (the default) or ``"file"``. Pool
         transport reuses persistent WebSocket connections across calls.
@@ -326,18 +329,16 @@ class WatermarkController:
             )
             source = _NamedAudio(audio, filename)
             stream_encode = getattr(client.audio, "stream_encode", None)
-            interval = options.get("interval", 0.0)
+            interval_seconds = options.get("interval_seconds")
             pool_compatible = (
                 resolved_transport == "pool"
                 and callable(stream_encode)
-                and not isinstance(interval, bool)
-                and interval == 0.0
+                and interval_seconds in (None, 0.0)
                 and options.get("check_watermark", False) is False
                 and not any(filename.lower().endswith(suffix) for suffix in _RAW_FILE_EXTENSIONS)
             )
             if pool_compatible:
                 stream_options = dict(options)
-                stream_options["interval"] = 0.0
                 stream_options["check_watermark"] = False
                 result = stream_encode(
                     source,
@@ -498,7 +499,37 @@ class WatermarkController:
         if unsupported:
             names = ", ".join(sorted(unsupported))
             raise TypeError("Unsupported watermark encode option(s): " + names)
-        self._encode_options.update(options)
+        merged = dict(self._encode_options)
+        if "interval" in options or "interval_seconds" in options:
+            merged.pop("interval", None)
+            merged.pop("interval_seconds", None)
+        merged.update(options)
+        interval = merged.pop("interval", _UNSET)
+        interval_seconds = merged.pop("interval_seconds", _UNSET)
+        if (
+            interval is not _UNSET
+            and interval_seconds is not _UNSET
+            and (
+                isinstance(interval, bool)
+                or isinstance(interval_seconds, bool)
+                or interval != interval_seconds
+            )
+        ):
+            raise ValueError("interval and interval_seconds must match when both are provided")
+        resolved_interval = interval_seconds if interval_seconds is not _UNSET else interval
+        if resolved_interval is not _UNSET:
+            if resolved_interval is None:
+                pass
+            elif (
+                isinstance(resolved_interval, bool)
+                or not isinstance(resolved_interval, (int, float))
+                or not math.isfinite(resolved_interval)
+                or resolved_interval < 0
+            ):
+                raise ValueError("interval_seconds must be a finite non-negative number")
+            else:
+                merged["interval_seconds"] = resolved_interval
+        self._encode_options = merged
 
     @staticmethod
     def _normalize_method_path(path: str) -> str:
