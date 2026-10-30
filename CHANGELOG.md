@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- Document server-side Token policy for positive input checks: the server may
+  reject or continue within the same operation, with at most one encoding charge.
+  Check is currently free; SDK defaults and call signatures are unchanged.
+
+## 1.5.1 - 2026-10-29
+
+### Input watermark inspection
+
+- `audio.encode(check_watermark=None)` now omits the parameter. With the updated
+  service, API-key requests default to no input inspection. Pass explicit
+  `True` to reject already-watermarked input, or `False` to skip inspection.
+- An older SDK sends explicit `True` by default and continues to request the
+  check. On older service versions, omission retains that service's prior
+  default; this release does not silently override an explicit caller choice.
+- Output verification, streaming behavior, prices, `save_file=False`, binary
+  downloads, and one-hour temporary JSON download links remain unchanged.
+
 ## 1.5.0 - 2026-10-23
 
 ### Migration notes

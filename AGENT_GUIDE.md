@@ -12,8 +12,8 @@ The public SDK repository is:
 https://github.com/ofspectrum/python-sdk
 ```
 
-Customer applications should normally install SDK `1.5.0` with
-`pip install "ofspectrum==1.5.0"`; they should not need the private Neo
+Customer applications should normally install SDK `1.5.1` with
+`pip install "ofspectrum==1.5.1"`; they should not need the private Neo
 monorepo source.
 
 If an agent needs SDK source orientation, use the public SDK repository above. From that repository root, inspect these files first:
@@ -381,7 +381,7 @@ Use this for:
 
 For local smoke tests, use the non-sine synthetic WAV files in `examples/audio`, such as `sample-speech-like-12s.wav` or `sample-broadband-10s.wav`.
 
-Important: the SDK rejects already-watermarked audio with `WatermarkExistsError`; it does not overwrite an existing watermark. Store source and watermarked files separately.
+Input inspection is opt-in: pass `check_watermark=True` to inspect existing watermarks. The server resolves positive findings against Token policy and either returns `WatermarkExistsError` or continues within the same operation. Do not automatically resend unchecked after rejection. Check is currently free; successful encoding retains normal billing. Omission (or `None`) uses the API-key default of `False`; explicit `False` skips inspection. Output verification is separate and remains enabled by default. Store source and watermarked files separately.
 
 Audio length note: encode eligibility is determined server-side for the selected assigned token, not from a fixed SDK duration rule. Eligible nonempty short clips can be accepted, but acceptance does not guarantee a recoverable watermark result; longer clips generally provide more evidence. Use the provided sample audio for smoke tests when a stable positive result is needed.
 
@@ -924,7 +924,7 @@ Recommended runtime flow:
 - Account defaults and storage charge authorization are configured in the Web Console, not through an API key.
 - A staged save begins one session and reuses its `save_session_id` across all files and the commit.
 - SDK `1.2.0` exposes no owner-history methods; owner history remains Web-only.
-- The standard SDK encode flow refuses already-watermarked audio instead of overwriting the existing watermark.
+- Opt into input inspection with `check_watermark=True`; positive findings follow server Token policy. Do not assume the default SDK call performs this check or retry a rejection unchecked.
 - Decode returns a token ID when a watermark is detected; the customer app should use that token ID to look up its own local business metadata.
 - Quota can change between a preflight check and the actual encode/decode call, so still handle quota errors from the final request.
 

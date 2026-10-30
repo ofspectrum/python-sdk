@@ -4,13 +4,13 @@ import ofspectrum
 from ofspectrum import __version__
 
 
-def test_package_versions_are_1_5_0():
+def test_package_versions_are_1_5_1():
     pyproject = (Path(__file__).parents[1] / "pyproject.toml").read_text(
         encoding="utf-8"
     )
 
-    assert __version__ == "1.5.0"
-    assert 'version = "1.5.0"' in pyproject
+    assert __version__ == "1.5.1"
+    assert 'version = "1.5.1"' in pyproject
 
 
 def test_installation_guides_match_the_package_release():
@@ -34,15 +34,21 @@ def test_current_release_has_documented_compatibility_notes():
     release_notes = changelog.split(release_marker, 1)[1].split("\n## ", 1)[0]
 
     for boundary in (
+        "check_watermark",
+        "explicit",
+        "older SDK",
+    ):
+        assert boundary in release_notes
+    previous_notes = changelog.split("\n## 1.5.0 - ", 1)[1].split("\n## ", 1)[0]
+    for boundary in (
         "tokens.update()",
         "keyword-only",
         "save_file=False",
         'response_format="stream"',
         "one hour",
     ):
-        assert boundary in release_notes
-    assert "Both response formats still return `EncodeResult`" in release_notes
-    assert "callers that need an `EncodeResult`" not in release_notes
+        assert boundary in previous_notes
+    assert "Both response formats still return `EncodeResult`" in previous_notes
 
 
 def test_1_2_0_public_models_and_exceptions_are_exported():

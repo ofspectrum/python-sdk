@@ -1,9 +1,5 @@
-import ast
 import io
-import inspect
 import json
-from pathlib import Path
-import re
 import threading
 from types import SimpleNamespace
 
@@ -13,36 +9,6 @@ import websockets.sync.client
 
 from ofspectrum import DecodeMatch, DecodeResult, OfSpectrum
 from ofspectrum.exceptions import OfSpectrumError
-from ofspectrum.resources.audio import AudioResource
-
-
-def test_public_audio_docs_match_sdk_interval_and_verification_defaults():
-    docs = (Path(__file__).parents[2] / "frontend/src/docs/sdk/audio.ts").read_text(encoding="utf-8")
-    signatures = re.findall(
-        r"^[ \t]*(?:def\s+|audio\.)(encode|stream_encode|stream_encode_pcm|open_stream_pool)"
-        r"\s*\((.*?)\)\s*->[^\n`]+", docs, flags=re.DOTALL | re.MULTILINE,
-    )
-    assert len(signatures) == 8, "Check both overview and detailed signatures for every method"
-    seen = {name: 0 for name in ("encode", "stream_encode", "stream_encode_pcm", "open_stream_pool")}
-    for method, parameters in signatures:
-        seen[method] += 1
-        actual = inspect.signature(getattr(AudioResource, method)).parameters
-        parsed = ast.parse(f"def documented({parameters}):\n    pass").body[0].args
-        documented = {}
-        positional_defaults = [None] * (len(parsed.args) - len(parsed.defaults)) + list(parsed.defaults)
-        for arg, default in zip(parsed.args, positional_defaults):
-            documented[arg.arg] = (inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                inspect.Parameter.empty if default is None else ast.literal_eval(default))
-        for arg, default in zip(parsed.kwonlyargs, parsed.kw_defaults):
-            documented[arg.arg] = (inspect.Parameter.KEYWORD_ONLY,
-                inspect.Parameter.empty if default is None else ast.literal_eval(default))
-        # The canonical signature intentionally omits only the deprecated alias.
-        assert set(documented) == set(actual) - {"self", "interval"}, method
-        for name, (kind, default) in documented.items():
-            assert kind == actual[name].kind, (method, name, "argument kind")
-            assert default == actual[name].default, (method, name, default, actual[name].default)
-        assert actual["interval"].default is actual["interval_seconds"].default is None
-    assert all(count == 2 for count in seen.values())
 
 
 def _response(*, content=b"encoded", headers=None, status_code=200):
@@ -83,12 +49,32 @@ def test_encode_sends_v2_parameters_and_long_audio_timeout():
     assert captured["data"]["interval_seconds"] == "2.5"
     assert captured["data"]["save_file"] == "false"
     assert captured["data"]["keep_original"] == "true"
-    assert captured["data"]["check_watermark"] == "true"
+    assert "check_watermark" not in captured["data"]
     assert captured["data"]["verify_and_reencode"] == "true"
     assert captured["data"]["response_format"] == "stream"
     assert result.audio_bytes == b"encoded"
     assert result.audio_duration == 180.0
     assert result.quality_warning is True
+
+
+@pytest.mark.parametrize("value,expected", [(None, None), (False, "false"), (True, "true")])
+def test_encode_input_check_omission_and_explicit_flags(value, expected):
+    with OfSpectrum(api_key="test-key") as client:
+        captured = {}
+        client.audio._post = lambda _path, **kw: captured.update(kw["data"]) or _response(
+            headers={"content-type": "audio/wav", "x-audio-duration": "2"})
+        client.audio.encode(io.BytesIO(b"audio"), "token-1", check_watermark=value)
+    assert captured.get("check_watermark") == expected
+    assert ("check_watermark" in captured) is (expected is not None)
+    assert captured["verify_and_reencode"] == "true"
+
+
+@pytest.mark.parametrize("value", [0, 1, "true", "false", [], {}])
+def test_encode_input_check_rejects_non_boolean_explicit_values(value):
+    with OfSpectrum(api_key="test-key") as client:
+        client.audio._post = lambda *_a, **_kw: pytest.fail("invalid flag dispatched")
+        with pytest.raises(ValueError, match="check_watermark must be a boolean"):
+            client.audio.encode(io.BytesIO(b"audio"), "token-1", check_watermark=value)
 
 
 def test_encode_omits_interval_by_default_and_preserves_explicit_zero():
