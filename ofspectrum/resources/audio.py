@@ -1005,7 +1005,7 @@ class AudioResource(BaseResource):
         output_path: Optional[Union[str, Path]] = None,
         save_file: bool = False,
         keep_original: bool = True,
-        check_watermark: bool = True,
+        check_watermark: Optional[bool] = None,
         verify_and_reencode: bool = True,
         response_format: Optional[str] = "stream",
         original_filename: Optional[str] = None,
@@ -1023,7 +1023,9 @@ class AudioResource(BaseResource):
             output_path: Optional local path; does not enable server-side storage or change response format
             save_file: Persist the encoded file in OfSpectrum storage (default False)
             keep_original: Persist the uploaded source only when save_file is True (default True)
-            check_watermark: Reject audio that already contains a watermark (default True)
+            check_watermark: Inspect input for existing watermarks. None omits the
+                parameter (API-key requests default to False); True enables the
+                check and False explicitly disables it. Separate from output verification.
             verify_and_reencode: Verify the encoded result and re-encode on mismatch (default True)
             response_format: Optional "stream" (binary file) or "json" (download URL).
                 Defaults to "stream", even with output_path. None also selects "stream".
@@ -1061,7 +1063,6 @@ class AudioResource(BaseResource):
             "smooth": self._form_bool(smooth, "smooth"),
             "save_file": self._form_bool(save_file, "save_file"),
             "keep_original": self._form_bool(keep_original, "keep_original"),
-            "check_watermark": self._form_bool(check_watermark, "check_watermark"),
             "verify_and_reencode": self._form_bool(
                 verify_and_reencode, "verify_and_reencode"
             ),
@@ -1069,6 +1070,8 @@ class AudioResource(BaseResource):
                 response_format,
             ),
         }
+        if check_watermark is not None:
+            form_data["check_watermark"] = self._form_bool(check_watermark, "check_watermark")
         if token_id:
             form_data["token_id"] = token_id
         if resolved_interval is not None:

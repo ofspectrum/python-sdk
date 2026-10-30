@@ -12,7 +12,7 @@ from ofspectrum.exceptions import (
 def test_client_version_headers_match_release():
     client = OfSpectrum(api_key="test-key")
     try:
-        assert client._default_headers()["User-Agent"] == "OfSpectrum-Python-SDK/1.5.0"
+        assert client._default_headers()["User-Agent"] == "OfSpectrum-Python-SDK/1.5.1"
     finally:
         client.close()
 
@@ -20,7 +20,7 @@ def test_client_version_headers_match_release():
 @pytest.mark.asyncio
 async def test_async_client_version_headers_match_release():
     async with AsyncOfSpectrum(api_key="test-key") as client:
-        assert client._default_headers()["User-Agent"] == "OfSpectrum-Python-SDK/1.5.0"
+        assert client._default_headers()["User-Agent"] == "OfSpectrum-Python-SDK/1.5.1"
 
 
 @pytest.mark.asyncio

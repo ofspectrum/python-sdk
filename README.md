@@ -1,14 +1,14 @@
 # OfSpectrum Python SDK
 
 Official Python SDK for the OfSpectrum audio watermarking API. This guide
-describes the SDK `1.5.0` contract. See the
+describes the SDK `1.5.1` contract. See the
 [changelog](https://github.com/ofspectrum/python-sdk/blob/main/CHANGELOG.md)
 for release notes and upgrade compatibility details.
 
 ## Installation
 
 ```bash
-pip install "ofspectrum==1.5.0"
+pip install "ofspectrum==1.5.1"
 ```
 
 Or install from source:
@@ -507,7 +507,15 @@ Explicit `response_format="json"` with `save_file=False` returns a temporary
 download URL valid for one hour, not a persistent file in My Tokens. Expired
 temporary data is cleaned up asynchronously; physical deletion need not happen
 at the exact expiry instant. `check_watermark` and `verify_and_reencode` remain
-available for preflight and verification control.
+available for preflight and verification control. Input inspection is opt-in:
+`check_watermark=None` omits the parameter (API-key default `False`); explicit
+`True` enables it and explicit `False` skips it. Older SDK versions that send
+`True` continue requesting inspection. A positive inspection is resolved by the
+server's Token policy: it may reject with `WatermarkExistsError` or continue
+encoding. Clients must not automatically resend with inspection disabled after
+a rejection. Check is currently free; successful encoding uses normal charges.
+Input inspection failures do not produce
+an encoded file; they must not be treated as an inspection pass.
 OneFile verification remains enabled by default. Realtime methods and stream
 pools default it to disabled; an explicit legacy `verify_and_reencode=True`
 request remains compatible but does not promise synchronous verification.
