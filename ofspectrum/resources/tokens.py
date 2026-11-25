@@ -133,7 +133,8 @@ class TokensResource(BaseResource):
         Create a new watermark token.
 
         Args:
-            name: Token name (for identification)
+            name: Token name (for identification); at most 100 characters after
+                trimming, a longer name is rejected with HTTP 422
             token_type: "standard" (default) or "pro"
             public_key: Verification key, required for pro tokens
             ai_auth_enabled: Whether AI authorization is enabled
@@ -212,7 +213,7 @@ class TokensResource(BaseResource):
 
         Args:
             token_id: The token UUID
-            name: New name (optional)
+            name: New name (optional); at most 100 characters after trimming
             public_key: New verification key when your token workflow supports it (optional)
             enterprise_verification: Enterprise-only verification setting for eligible accounts (optional)
             ai_auth_enabled: Whether AI authorization is enabled

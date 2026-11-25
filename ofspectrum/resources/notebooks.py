@@ -149,6 +149,17 @@ class NotebooksResource(BaseResource):
             credential_val=credential_val,
         )
 
+        try:
+            return self._post_create(params)
+        except OfSpectrumError as exc:
+            if not text_content or not _is_atomic_commit_required(exc):
+                raise
+        # Servers that predate the atomic create refuse text while immutable
+        # notebook writes are on: create the empty notebook, then commit the text
+        # as its first version (the same flow the web app uses).
+        return self._create_then_commit_text(params, text_content)
+
+    def _post_create(self, params: NotebookCreateParams) -> Notebook:
         response = self._post("/watermark-notes", data=params.to_dict())
         data = response.json()
         raise_for_error(data, response.status_code)
@@ -156,6 +167,29 @@ class NotebooksResource(BaseResource):
         # API returns the note directly
         note_data = data if isinstance(data, dict) and "id" in data else data.get("data", {})
         return Notebook.from_dict(note_data)
+
+    def _create_then_commit_text(
+        self, params: NotebookCreateParams, text_content: str
+    ) -> Notebook:
+        empty = self._post_create(
+            NotebookCreateParams(
+                token_id=params.token_id,
+                note_name=params.note_name,
+                text_content=None,
+                is_public=params.is_public,
+                credential_val=params.credential_val,
+            )
+        )
+        try:
+            return self.update(empty.id, text_content=text_content)
+        except Exception:
+            # Do not leave an empty notebook behind: a retry of the same create
+            # would otherwise fail with a name conflict.
+            try:
+                self.delete(empty.id)
+            except Exception:
+                pass
+            raise
 
     def update(
         self,
@@ -800,15 +834,22 @@ def _restore_stream_position(
         return False
 
 
-def _is_explicit_immutable_disabled(exc: OfSpectrumError) -> bool:
+def _error_codes(exc: OfSpectrumError) -> set:
     candidates = [exc.code]
     details = exc.details if isinstance(exc.details, Mapping) else {}
     candidates.extend((details.get("code"), details.get("error")))
     nested = details.get("details")
     if isinstance(nested, Mapping):
         candidates.extend((nested.get("code"), nested.get("error")))
+    return {_normalize_error_code(value) for value in candidates}
 
-    return any(_normalize_error_code(value) in _IMMUTABLE_DISABLED_CODES for value in candidates)
+
+def _is_explicit_immutable_disabled(exc: OfSpectrumError) -> bool:
+    return bool(_error_codes(exc) & _IMMUTABLE_DISABLED_CODES)
+
+
+def _is_atomic_commit_required(exc: OfSpectrumError) -> bool:
+    return "notebook_atomic_commit_required" in _error_codes(exc)
 
 
 def _normalize_error_code(value: Any) -> str:
