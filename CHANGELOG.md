@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Token names are limited to 100 characters after trimming. `tokens.create()`
+  and `tokens.update(name=...)` with a longer name fail with a validation error
+  (HTTP 422); nothing is created or charged.
+
+- `notebooks.create(text_content=...)` no longer fails with
+  `NotebookAtomicCommitRequired` (HTTP 409) while immutable notebook writes are
+  enabled. Current servers accept the text in the create request; against an
+  older server the SDK creates the empty notebook, commits the text as its first
+  version, and deletes the empty notebook again if that commit fails.
+
 - Document server-side Token policy for positive input checks: the server may
   reject or continue within the same operation, with at most one encoding charge.
   Check is currently free; SDK defaults and call signatures are unchanged.

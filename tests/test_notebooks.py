@@ -484,3 +484,105 @@ def test_notebook_summary_distinguishes_omitted_media_from_empty_current_media()
     assert summary.media is None
     assert current.media == []
     assert current.revision == 0
+
+
+_ATOMIC_REQUIRED = {
+    "detail": {
+        "error": "NotebookAtomicCommitRequired",
+        "message": "Use the atomic notebook commit API for immutable notebook writes.",
+    }
+}
+
+
+def _created(text=None, revision=0):
+    return {
+        "id": "note-1",
+        "token_id": "token-1",
+        "note_name": "Private Evidence",
+        "text_content": text,
+        "is_public": False,
+        "credential_val": "secret",
+        "revision": revision,
+        "media": [],
+    }
+
+
+def test_create_with_text_is_one_request_when_the_server_accepts_it(monkeypatch):
+    resource = NotebooksResource(_Client(_Commits()))
+    posts = []
+    monkeypatch.setattr(
+        resource,
+        "_post",
+        lambda path, data=None, **_kw: posts.append((path, dict(data))) or _Response(_created("hello", 1)),
+    )
+
+    note = resource.create("token-1", "Private Evidence", text_content="hello", is_public=False, credential_val="secret")
+
+    assert note.text_content == "hello"
+    assert len(posts) == 1
+    assert posts[0][1]["text_content"] == "hello"
+
+
+def test_create_with_text_falls_back_to_bootstrap_and_commit(monkeypatch):
+    commits = _Commits(_commit_response([], revision=1))
+    resource = NotebooksResource(_Client(commits))
+    posts = []
+
+    def post(path, data=None, **_kw):
+        posts.append((path, dict(data)))
+        if "text_content" in data:
+            return _Response(_ATOMIC_REQUIRED, status_code=409)
+        return _Response(_created(None, 0))
+
+    monkeypatch.setattr(resource, "_post", post)
+    monkeypatch.setattr(resource, "_get", lambda path: _Response(_created(None, 0)))
+    monkeypatch.setattr(resource, "_delete", lambda *_a, **_k: pytest.fail("must not delete on success"))
+
+    note = resource.create("token-1", "Private Evidence", text_content="hello", is_public=False, credential_val="secret")
+
+    assert [("text_content" in data) for _, data in posts] == [True, False]
+    assert note.text_content == "hello"
+    assert note.revision == 1
+    _, commit_kwargs = commits.commit_calls[0]
+    assert commit_kwargs["expected_revision"] == 0
+    assert commit_kwargs["desired_state"].to_dict()["text_content"] == "hello"
+
+
+def test_create_fallback_deletes_the_empty_notebook_when_the_commit_fails(monkeypatch):
+    failure = ServiceUnavailableError("commit unavailable", status_code=503)
+    commits = _Commits(commit_error=failure)
+    resource = NotebooksResource(_Client(commits))
+    deleted = []
+
+    def post(path, data=None, **_kw):
+        if "text_content" in data:
+            return _Response(_ATOMIC_REQUIRED, status_code=409)
+        return _Response(_created(None, 0))
+
+    monkeypatch.setattr(resource, "_post", post)
+    monkeypatch.setattr(resource, "_get", lambda path: _Response(_created(None, 0)))
+    monkeypatch.setattr(
+        resource,
+        "_delete",
+        lambda path, **_k: deleted.append(path) or _Response({"message": "Note deleted"}),
+    )
+
+    with pytest.raises(ServiceUnavailableError):
+        resource.create("token-1", "Private Evidence", text_content="hello", is_public=False)
+
+    assert deleted == ["/watermark-notes/note-1"]
+
+
+def test_create_without_text_does_not_retry_an_atomic_commit_error(monkeypatch):
+    resource = NotebooksResource(_Client(_Commits()))
+    posts = []
+    monkeypatch.setattr(
+        resource,
+        "_post",
+        lambda path, data=None, **_kw: posts.append(path) or _Response(_ATOMIC_REQUIRED, status_code=409),
+    )
+
+    with pytest.raises(OfSpectrumError):
+        resource.create("token-1", "Private Evidence")
+
+    assert len(posts) == 1
